@@ -1,0 +1,43 @@
+# Local agent/tooling state
+.superpowers/
+
+# Build output
+bin/
+obj/
+out/
+dist/
+build/
+
+# .NET and IDE state
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+TestResults/
+coverage/
+coverage.*
+*.trx
+
+# Runtime data
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Docker and local environment
+.env
+.env.*
+!.env.example
+docker-compose.override.yml
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+Thumbs.db
+Desktop.ini
