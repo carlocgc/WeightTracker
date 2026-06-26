@@ -1,7 +1,12 @@
+using Microsoft.EntityFrameworkCore;
+using WeightTracker.Web.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddDbContext<WeightTrackerDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("WeightTracker")));
 
 var app = builder.Build();
 
@@ -24,3 +29,5 @@ app.MapRazorPages()
    .WithStaticAssets();
 
 app.Run();
+
+public partial class Program;
