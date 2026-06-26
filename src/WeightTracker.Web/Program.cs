@@ -5,8 +5,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+var connectionString = builder.Configuration["ConnectionStrings:WeightTracker"];
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException("The ConnectionStrings:WeightTracker connection string is required.");
+}
+
 builder.Services.AddDbContext<WeightTrackerDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("WeightTracker")));
+    options.UseSqlite(connectionString));
 
 var app = builder.Build();
 
