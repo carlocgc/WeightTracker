@@ -18,6 +18,7 @@ builder.Services.AddScoped<SettingsService>();
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddScoped<ILocalDateProvider, LocalDateProvider>();
 builder.Services.AddScoped<WeightEntryService>();
+builder.Services.AddScoped<MetricsService>();
 
 var app = builder.Build();
 
