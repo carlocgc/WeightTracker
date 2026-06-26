@@ -845,7 +845,7 @@ git commit -m "feat: add daily weight entry service"
 - Test: `tests/WeightTracker.Tests/MetricsServiceTests.cs`
 - Modify: `src/WeightTracker.Web/Program.cs`
 
-- [ ] **Step 1: Write failing metrics tests**
+- [x] **Step 1: Write failing metrics tests**
 
 Create `tests/WeightTracker.Tests/MetricsServiceTests.cs`:
 
@@ -930,7 +930,7 @@ dotnet test tests/WeightTracker.Tests/WeightTracker.Tests.csproj --filter Metric
 
 Expected: fails because `MetricsService` does not exist.
 
-- [ ] **Step 2: Implement metrics service**
+- [x] **Step 2: Implement metrics service**
 
 Create `src/WeightTracker.Web/Services/MetricsService.cs`:
 
@@ -1049,7 +1049,7 @@ public sealed class MetricsService
 }
 ```
 
-- [ ] **Step 3: Register metrics service**
+- [x] **Step 3: Register metrics service**
 
 In `Program.cs`, add:
 
@@ -1057,7 +1057,7 @@ In `Program.cs`, add:
 builder.Services.AddScoped<MetricsService>();
 ```
 
-- [ ] **Step 4: Run metrics tests**
+- [x] **Step 4: Run metrics tests**
 
 Run:
 
@@ -1067,7 +1067,7 @@ dotnet test tests/WeightTracker.Tests/WeightTracker.Tests.csproj --filter Metric
 
 Expected: tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
