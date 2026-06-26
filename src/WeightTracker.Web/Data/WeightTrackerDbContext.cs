@@ -15,7 +15,7 @@ public sealed class WeightTrackerDbContext(DbContextOptions<WeightTrackerDbConte
         {
             entity.ToTable(table => table.HasCheckConstraint(
                 "CK_WeightEntries_WeightKg_Valid",
-                "CAST(WeightKg AS REAL) >= 0.1 AND CAST(WeightKg AS REAL) <= 1000 AND CAST(WeightKg * 1000 AS INTEGER) = WeightKg * 1000"));
+                "CAST(WeightKg AS REAL) >= 0.1 AND CAST(WeightKg AS REAL) <= 1000 AND CAST(WeightKg AS REAL) = ROUND(CAST(WeightKg AS REAL), 3)"));
             entity.HasIndex(weightEntry => weightEntry.EntryDate).IsUnique();
             entity.Property(weightEntry => weightEntry.WeightKg).HasPrecision(8, 3);
             entity.Property(weightEntry => weightEntry.Note).HasMaxLength(500);

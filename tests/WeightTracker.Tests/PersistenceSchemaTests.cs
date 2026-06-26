@@ -17,7 +17,7 @@ public sealed class PersistenceSchemaTests
             db.WeightEntries.Add(new WeightEntry
             {
                 EntryDate = entryDate,
-                WeightKg = 82.125m,
+                WeightKg = 64.001m,
                 Note = null,
             });
 
@@ -28,7 +28,7 @@ public sealed class PersistenceSchemaTests
         var entry = readDb.WeightEntries.Single();
 
         Assert.Equal(entryDate, entry.EntryDate);
-        Assert.Equal(82.125m, entry.WeightKg);
+        Assert.Equal(64.001m, entry.WeightKg);
         Assert.Null(entry.Note);
     }
 
@@ -43,7 +43,7 @@ public sealed class PersistenceSchemaTests
             db.WeightEntries.Add(new WeightEntry
             {
                 EntryDate = entryDate,
-                WeightKg = 82.125m,
+                WeightKg = 64.001m,
             });
             db.SaveChanges();
         }
