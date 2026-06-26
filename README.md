@@ -15,9 +15,19 @@ WeightTracker is a planned Dockerized, mobile-first web app for manually recordi
 
 ## Current Status
 
-The app is in the planning stage. The initial design spec is stored at:
+The app has an initial .NET scaffold with an ASP.NET Core Razor Pages web project and an xUnit test project. The initial design spec is stored at:
 
 - `docs/superpowers/specs/2026-06-25-weight-tracker-design.md`
+
+## Development
+
+Restore dependencies, build the solution, and run the test suite with:
+
+```powershell
+dotnet restore WeightTracker.sln
+dotnet build WeightTracker.sln
+dotnet test WeightTracker.sln
+```
 
 ## Branches
 

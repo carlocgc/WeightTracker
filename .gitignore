@@ -5,7 +5,7 @@
 bin/
 obj/
 out/
-dist/
+/dist/
 build/
 
 # .NET and IDE state
@@ -21,7 +21,7 @@ coverage.*
 *.trx
 
 # Runtime data
-data/
+/data/
 *.db
 *.db-shm
 *.db-wal
