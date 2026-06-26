@@ -21,10 +21,12 @@ The app has an initial .NET scaffold with an ASP.NET Core Razor Pages web projec
 
 ## Development
 
-Build the solution with:
+Restore dependencies, build the solution, and run the test suite with:
 
 ```powershell
+dotnet restore WeightTracker.sln
 dotnet build WeightTracker.sln
+dotnet test WeightTracker.sln
 ```
 
 ## Branches
