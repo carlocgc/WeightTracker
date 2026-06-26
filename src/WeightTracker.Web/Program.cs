@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WeightTracker.Web.Data;
+using WeightTracker.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddDbContext<WeightTrackerDbContext>(options =>
     options.UseSqlite(connectionString));
+builder.Services.AddScoped<SettingsService>();
 
 var app = builder.Build();
 
