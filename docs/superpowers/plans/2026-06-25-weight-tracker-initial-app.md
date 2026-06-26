@@ -1845,6 +1845,12 @@ public static class DatabaseInitializer
     {
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<WeightTrackerDbContext>();
+        var databaseDirectory = Path.GetDirectoryName(db.Database.GetDbConnection().DataSource);
+        if (!string.IsNullOrWhiteSpace(databaseDirectory))
+        {
+            Directory.CreateDirectory(databaseDirectory);
+        }
+
         await db.Database.MigrateAsync();
 
         if (!await db.AppSettings.AnyAsync(item => item.Id == AppSettings.SingletonId))
