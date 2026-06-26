@@ -10,9 +10,22 @@
 
 ---
 
+## Product Amendments (2026-06-26)
+
+These approved requirements supersede the conflicting portions of Tasks 5, 7, and 9:
+
+- The main entry page is a descending, scrollable date-card feed. Today's card is first on launch; earlier cards are editable without any user-entered date.
+- A date card's local calendar date is derived from the saved application time zone. The persistence service receives that application-generated date internally so it can save the selected card, but the entry form accepts only weight in the configured unit.
+- The weight field uses `inputmode="decimal"` to request a mobile numeric keypad. It filters input to digits and one decimal separator, while server-side decimal parsing and positive-value validation remain authoritative.
+- A past card has a confirmed, antiforgery-protected deletion action. The service rejects deletion of today and future dates.
+
+---
+
+
 ## File Structure
 
 Create this structure:
+
 
 ```text
 WeightTracker.sln
