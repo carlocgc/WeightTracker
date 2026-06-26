@@ -23,6 +23,13 @@ Version 1 includes:
 - Optional goal weight shown as a chart reference line.
 - Docker Compose deployment with persistent local storage.
 
+## Card-Entry Amendments (2026-06-26)
+
+- The dashboard is a descending, scrollable date-card feed. Today's card is first on launch, and a user can edit an earlier card without entering a date.
+- Each card's date is derived from the saved application time zone. The entry field accepts a decimal weight only in the configured display unit.
+- The field requests a decimal mobile keypad and filters input to digits plus one decimal separator; server-side decimal and positive-value validation is authoritative.
+- A confirmed, antiforgery-protected action can delete a past card. Today and future cards cannot be deleted.
+
 Deferred features:
 
 - CSV or Excel import.
