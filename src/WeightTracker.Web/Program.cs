@@ -15,6 +15,9 @@ if (string.IsNullOrWhiteSpace(connectionString))
 builder.Services.AddDbContext<WeightTrackerDbContext>(options =>
     options.UseSqlite(connectionString));
 builder.Services.AddScoped<SettingsService>();
+builder.Services.AddSingleton<IClock, SystemClock>();
+builder.Services.AddScoped<ILocalDateProvider, LocalDateProvider>();
+builder.Services.AddScoped<WeightEntryService>();
 
 var app = builder.Build();
 
