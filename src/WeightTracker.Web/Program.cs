@@ -12,6 +12,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException("The ConnectionStrings:WeightTracker connection string is required.");
 }
 
+connectionString = DatabaseInitializer.NormalizeSqliteConnectionString(connectionString, builder.Environment.ContentRootPath);
 builder.Services.AddDbContext<WeightTrackerDbContext>(options =>
     options.UseSqlite(connectionString));
 builder.Services.AddScoped<SettingsService>();
@@ -39,6 +40,8 @@ app.UseAuthorization();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
+
+await DatabaseInitializer.InitializeAsync(app.Services);
 
 app.Run();
 
