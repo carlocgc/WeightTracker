@@ -1,10 +1,124 @@
-﻿@page
-@model IndexModel
+@page
+@model WeightTracker.Web.Pages.IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Dashboard";
+    ViewData["Theme"] = Model.Theme;
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<div asp-validation-summary="All" class="validation-summary"></div>
+
+<section class="entry-feed" aria-label="Daily weight entries">
+    @foreach (var card in Model.Cards)
+    {
+        <article class="entry-card">
+            <div class="entry-card__header">
+                <div>
+                    <p class="eyebrow">@(card.IsToday ? "Today" : card.EntryDate.DayOfWeek)</p>
+                    <h2>@card.EntryDate.ToString("dddd, dd MMM yyyy")</h2>
+                </div>
+                <strong>@Model.FormatWeight(card.WeightKg)</strong>
+            </div>
+
+            <form method="post" class="entry-form">
+                <input type="hidden" name="EntryDate" value="@card.EntryDate.ToString("O")" />
+
+                <label for="weight-@card.EntryDate.ToString("yyyyMMdd")">
+                    @if (card.IsToday)
+                    {
+                        <text>Today's weight</text>
+                    }
+                    else
+                    {
+                        <text>Weight</text>
+                    }
+                    (@Model.DisplayUnit)
+                </label>
+                <input id="weight-@card.EntryDate.ToString("yyyyMMdd")"
+                       name="Weight"
+                       value="@Model.InputValue(card)"
+                       type="text"
+                       inputmode="decimal"
+                       autocomplete="off"
+                       data-decimal-input
+                       aria-describedby="weight-validation-@card.EntryDate.ToString("yyyyMMdd")" />
+                <span id="weight-validation-@card.EntryDate.ToString("yyyyMMdd")" asp-validation-for="Weight"></span>
+
+                <div class="entry-card__actions">
+                    <button type="submit">@(card.HasEntry ? "Update" : "Save")</button>
+                    @if (card.CanDelete)
+                    {
+                        <button type="submit"
+                                class="button-secondary"
+                                asp-page-handler="Delete"
+                                onclick="return confirm('Delete this past entry?');">
+                            Delete
+                        </button>
+                    }
+                </div>
+            </form>
+        </article>
+    }
+</section>
+
+<section class="metric-grid">
+    <article><span>Latest</span><strong>@Model.FormatWeight(Model.Summary.LatestWeightKg)</strong></article>
+    <article><span>Current week</span><strong>@Model.FormatWeight(Model.Summary.CurrentWeekAverageKg)</strong></article>
+    <article><span>Previous week</span><strong>@Model.FormatWeight(Model.Summary.PreviousWeekAverageKg)</strong></article>
+    <article><span>Week delta</span><strong>@Model.FormatSignedWeight(Model.Summary.WeekOverWeekDeltaKg)</strong></article>
+</section>
+
+<section class="chart-panel">
+    <div class="section-heading">
+        <h2>Trend</h2>
+        <a asp-page="/History">History</a>
+    </div>
+    <canvas id="trendChart" height="260"></canvas>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.querySelectorAll('[data-decimal-input]').forEach((input) => {
+            input.addEventListener('input', () => {
+                const separator = input.value.includes(',') ? ',' : '.';
+                let hasSeparator = false;
+                input.value = Array.from(input.value)
+                    .filter((character) => {
+                        if (/\d/.test(character)) {
+                            return true;
+                        }
+
+                        if ((character === '.' || character === ',') && !hasSeparator) {
+                            hasSeparator = true;
+                            return true;
+                        }
+
+                        return false;
+                    })
+                    .join('')
+                    .replace(separator === ',' ? '.' : ',', separator);
+            });
+        });
+
+        const daily = @Json.Serialize(Model.Chart.DailyWeights);
+        const moving = @Json.Serialize(Model.Chart.MovingAverages);
+        const goal = @Json.Serialize(Model.Chart.GoalWeightKg);
+        const labels = daily.map(point => point.date);
+        const canvas = document.getElementById('trendChart');
+        if (canvas && window.Chart) {
+            new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Daily', data: daily.map(point => point.weightKg), borderColor: '#64d2ff', tension: 0.25 },
+                        { label: '7-day avg', data: moving.map(point => point.weightKg), borderColor: '#ffd166', tension: 0.25 },
+                        { label: 'Goal', data: goal ? labels.map(() => goal) : [], borderColor: '#7bd88f', borderDash: [6, 6], pointRadius: 0 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+    </script>
+}
