@@ -19,26 +19,52 @@ public sealed class DashboardPageTests
     private static readonly DateOnly Yesterday = new(2026, 6, 25);
 
     [Fact]
-    public async Task Dashboard_LoadsTodayFirstDateCardFeed()
+    public async Task Dashboard_RendersMobileDashboardWithCalendarEntryDialog()
     {
         await using var app = new DashboardTestApp();
         await app.UpdateSettingsAsync("kg");
+        await app.AddEntryAsync(Today, 82.1m);
         await app.AddEntryAsync(Yesterday, 82.4m);
         var client = app.CreateClient();
 
         var response = await client.GetAsync("/");
         var html = await response.Content.ReadAsStringAsync();
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Today's weight", html);
-        Assert.Contains("Friday, 26 Jun 2026", html);
-        Assert.Contains("Thursday, 25 Jun 2026", html);
-        Assert.Contains("Current week", html);
-        Assert.Contains("Previous week", html);
+        Assert.True(response.StatusCode == HttpStatusCode.OK, html);
+        Assert.Contains("class=\"weight-app\"", html);
+        Assert.Contains("Latest weight", html);
+        Assert.Contains("82.1 kg", html);
+        Assert.Contains("Recent history", html);
+        Assert.Contains("class=\"trend-chart-frame\"", html);
+        Assert.DoesNotContain("id=\"trendChart\" height=", html);
+        Assert.Contains("Thursday, 25 Jun", html);
+        Assert.Contains("Add / Update", html);
+        Assert.Contains("role=\"dialog\"", html);
+        Assert.Contains("data-entry-calendar", html);
+        Assert.Contains("data-calendar-day=\"2026-06-25\"", html);
+        Assert.Contains("data-entry-date=\"2026-06-25\"", html);
+        Assert.Contains("data-entry-weight=\"82.4\"", html);
+        Assert.DoesNotContain("entry-card", html);
         Assert.Contains("inputmode=\"decimal\"", html);
         Assert.Contains("data-decimal-input", html);
-        Assert.True(html.IndexOf("Friday, 26 Jun 2026", StringComparison.Ordinal) <
-            html.IndexOf("Thursday, 25 Jun 2026", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Dashboard_CalendarMonthQueryRendersHistoricalEntry()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg");
+        await app.AddEntryAsync(new DateOnly(2026, 5, 15), 83.2m);
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/?month=2026-05");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, html);
+        Assert.Contains("May 2026", html);
+        Assert.Contains("data-calendar-day=\"2026-05-15\"", html);
+        Assert.Contains("data-entry-date=\"2026-05-15\"", html);
+        Assert.Contains("data-entry-weight=\"83.2\"", html);
     }
 
     [Fact]

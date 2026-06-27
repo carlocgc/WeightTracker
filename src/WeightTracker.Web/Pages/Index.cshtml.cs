@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using WeightTracker.Web.Models;
@@ -5,11 +6,13 @@ using WeightTracker.Web.Services;
 
 namespace WeightTracker.Web.Pages;
 
-public sealed record DashboardDateCard(
+public sealed record DashboardHistoryRow(DateOnly EntryDate, decimal WeightKg);
+
+public sealed record DashboardCalendarDay(
     DateOnly EntryDate,
     decimal? WeightKg,
     bool IsToday,
-    bool CanDelete)
+    bool IsFuture)
 {
     public bool HasEntry => WeightKg.HasValue;
 }
@@ -20,7 +23,8 @@ public sealed class IndexModel(
     MetricsService metricsService,
     ILocalDateProvider localDateProvider) : PageModel
 {
-    private const int CardCount = 14;
+    private const int ChartDayCount = 180;
+    private const int RecentHistoryCount = 7;
 
     [BindProperty]
     public DateOnly EntryDate { get; set; }
@@ -28,13 +32,28 @@ public sealed class IndexModel(
     [BindProperty]
     public decimal? Weight { get; set; }
 
+    [BindProperty(SupportsGet = true, Name = "month")]
+    public string? CalendarMonth { get; set; }
+
     public string DisplayUnit { get; private set; } = "kg";
 
     public string Theme { get; private set; } = "dark";
 
     public DateOnly Today { get; private set; }
 
-    public IReadOnlyList<DashboardDateCard> Cards { get; private set; } = [];
+    public DateOnly VisibleMonth { get; private set; }
+
+    public decimal? TodayWeightKg { get; private set; }
+
+    public IReadOnlyList<DashboardHistoryRow> RecentHistory { get; private set; } = [];
+
+    public IReadOnlyList<DashboardCalendarDay> CalendarDays { get; private set; } = [];
+
+    public int CalendarLeadingBlankCount { get; private set; }
+
+    public string PreviousCalendarMonthQuery { get; private set; } = string.Empty;
+
+    public string? NextCalendarMonthQuery { get; private set; }
 
     public MetricsSummary Summary { get; private set; } = new(null, null, null, null, null, null, null, null, null, null);
 
@@ -90,20 +109,50 @@ public sealed class IndexModel(
         DisplayUnit = settings.DisplayUnit;
         Theme = settings.Theme;
         Today = await localDateProvider.GetTodayAsync(cancellationToken);
+        VisibleMonth = ResolveVisibleMonth(CalendarMonth, Today);
 
-        var entries = await entryService.GetRangeAsync(Today.AddDays(-180), Today, cancellationToken);
+        var visibleMonthStart = new DateOnly(VisibleMonth.Year, VisibleMonth.Month, 1);
+        var chartStart = Today.AddDays(-ChartDayCount);
+        var rangeStart = visibleMonthStart < chartStart ? visibleMonthStart : chartStart;
+
+        var entries = await entryService.GetRangeAsync(rangeStart, Today, cancellationToken);
         var entriesByDate = entries.ToDictionary(entry => entry.EntryDate);
-        Cards = Enumerable.Range(0, CardCount)
-            .Select(offset => Today.AddDays(-offset))
-            .Select(date => new DashboardDateCard(
-                date,
-                entriesByDate.TryGetValue(date, out var entry) ? entry.WeightKg : null,
-                date == Today,
-                date < Today && entriesByDate.ContainsKey(date)))
+
+        TodayWeightKg = entriesByDate.TryGetValue(Today, out var todayEntry)
+            ? todayEntry.WeightKg
+            : null;
+
+        RecentHistory = entries
+            .Where(entry => entry.EntryDate <= Today)
+            .OrderByDescending(entry => entry.EntryDate)
+            .Take(RecentHistoryCount)
+            .Select(entry => new DashboardHistoryRow(entry.EntryDate, entry.WeightKg))
             .ToList();
+
+        CalendarDays = BuildCalendarDays(visibleMonthStart, entriesByDate);
+        CalendarLeadingBlankCount = ((int)visibleMonthStart.DayOfWeek + 6) % 7;
+        PreviousCalendarMonthQuery = visibleMonthStart.AddMonths(-1).ToString("yyyy-MM", CultureInfo.InvariantCulture);
+
+        var currentMonthStart = new DateOnly(Today.Year, Today.Month, 1);
+        var nextMonthStart = visibleMonthStart.AddMonths(1);
+        NextCalendarMonthQuery = nextMonthStart <= currentMonthStart
+            ? nextMonthStart.ToString("yyyy-MM", CultureInfo.InvariantCulture)
+            : null;
 
         Summary = metricsService.BuildSummary(entries, Today, settings.WeekStartsOn, settings.GoalWeightKg);
         Chart = metricsService.BuildChartSeries(entries, settings.WeekStartsOn, settings.GoalWeightKg);
+    }
+
+    public string CalendarMonthLabel => VisibleMonth.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+
+    public string EntryDateIso(DateOnly value)
+    {
+        return value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    }
+
+    public string FormatHistoryDate(DateOnly value)
+    {
+        return value.ToString("dddd, dd MMM", CultureInfo.InvariantCulture);
     }
 
     public string FormatWeight(decimal? valueKg)
@@ -120,14 +169,64 @@ public sealed class IndexModel(
             return "-";
         }
 
-        var display = WeightConversionService.FromKilograms(valueKg.Value, DisplayUnit);
+        var display = valueKg.Value == 0
+            ? 0
+            : WeightConversionService.FromKilograms(Math.Abs(valueKg.Value), DisplayUnit) * Math.Sign(valueKg.Value);
         return $"{display:+0.0;-0.0;0.0} {DisplayUnit}";
     }
 
-    public string InputValue(DashboardDateCard card)
+    public string FormatGoalDistance()
     {
-        return card.WeightKg is null
+        return Summary.LatestWeightKg.HasValue && Summary.GoalWeightKg.HasValue
+            ? FormatSignedWeight(Summary.LatestWeightKg.Value - Summary.GoalWeightKg.Value)
+            : FormatSignedWeight(Summary.ThirtyDayChangeKg);
+    }
+
+    public string InputValue(DashboardCalendarDay day)
+    {
+        return InputWeightValue(day.WeightKg);
+    }
+
+    public string InputWeightValue(decimal? valueKg)
+    {
+        return valueKg is null
             ? string.Empty
-            : decimal.Round(WeightConversionService.FromKilograms(card.WeightKg.Value, DisplayUnit), 1).ToString("0.0");
+            : decimal.Round(WeightConversionService.FromKilograms(valueKg.Value, DisplayUnit), 1).ToString("0.0", CultureInfo.InvariantCulture);
+    }
+
+    private IReadOnlyList<DashboardCalendarDay> BuildCalendarDays(
+        DateOnly visibleMonthStart,
+        IReadOnlyDictionary<DateOnly, WeightEntry> entriesByDate)
+    {
+        return Enumerable.Range(0, DateTime.DaysInMonth(visibleMonthStart.Year, visibleMonthStart.Month))
+            .Select(offset => visibleMonthStart.AddDays(offset))
+            .Select(date => new DashboardCalendarDay(
+                date,
+                entriesByDate.TryGetValue(date, out var entry) ? entry.WeightKg : null,
+                date == Today,
+                date > Today))
+            .ToList();
+    }
+
+    private static DateOnly ResolveVisibleMonth(string? month, DateOnly today)
+    {
+        var currentMonth = new DateOnly(today.Year, today.Month, 1);
+        if (string.IsNullOrWhiteSpace(month))
+        {
+            return currentMonth;
+        }
+
+        if (!DateTime.TryParseExact(
+            month,
+            "yyyy-MM",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out var parsed))
+        {
+            return currentMonth;
+        }
+
+        var requested = new DateOnly(parsed.Year, parsed.Month, 1);
+        return requested > currentMonth ? currentMonth : requested;
     }
 }
