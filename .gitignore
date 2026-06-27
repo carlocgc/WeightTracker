@@ -22,7 +22,9 @@ coverage.*
 
 # Runtime data
 /data/
+/src/WeightTracker.Web/App_Data/
 *.db
+*.db-journal
 *.db-shm
 *.db-wal
 *.sqlite
