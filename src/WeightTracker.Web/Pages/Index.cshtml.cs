@@ -59,6 +59,10 @@ public sealed class IndexModel(
 
     public ChartSeries Chart { get; private set; } = new([], [], [], null);
 
+    public ChartSeries LongRangeChart { get; private set; } = new([], [], [], null);
+
+    public int EntryCount { get; private set; }
+
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         await LoadAsync(cancellationToken);
@@ -113,9 +117,11 @@ public sealed class IndexModel(
 
         var visibleMonthStart = new DateOnly(VisibleMonth.Year, VisibleMonth.Month, 1);
         var chartStart = Today.AddDays(-ChartDayCount);
-        var rangeStart = visibleMonthStart < chartStart ? visibleMonthStart : chartStart;
 
-        var entries = await entryService.GetRangeAsync(rangeStart, Today, cancellationToken);
+        var entries = await entryService.GetRangeAsync(DateOnly.MinValue, Today, cancellationToken);
+        var compactChartEntries = entries
+            .Where(entry => entry.EntryDate >= chartStart)
+            .ToList();
         var entriesByDate = entries.ToDictionary(entry => entry.EntryDate);
 
         TodayWeightKg = entriesByDate.TryGetValue(Today, out var todayEntry)
@@ -140,7 +146,9 @@ public sealed class IndexModel(
             : null;
 
         Summary = metricsService.BuildSummary(entries, Today, settings.WeekStartsOn, settings.GoalWeightKg);
-        Chart = metricsService.BuildChartSeries(entries, settings.WeekStartsOn, settings.GoalWeightKg);
+        Chart = metricsService.BuildChartSeries(compactChartEntries, settings.WeekStartsOn, settings.GoalWeightKg);
+        LongRangeChart = metricsService.BuildChartSeries(entries, settings.WeekStartsOn, settings.GoalWeightKg);
+        EntryCount = entries.Count;
     }
 
     public string CalendarMonthLabel => VisibleMonth.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
