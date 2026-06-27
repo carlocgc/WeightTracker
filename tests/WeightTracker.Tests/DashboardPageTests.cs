@@ -68,6 +68,57 @@ public sealed class DashboardPageTests
     }
 
     [Fact]
+    public async Task Dashboard_RendersDeepInsightSectionsWithAllTimeData()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg");
+        await app.AddEntryAsync(new DateOnly(2025, 11, 1), 84.0m);
+        await app.AddEntryAsync(new DateOnly(2026, 5, 20), 83.0m);
+        await app.AddEntryAsync(Yesterday, 82.4m);
+        await app.AddEntryAsync(Today, 82.1m);
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, html);
+        Assert.Contains("Long-term trend", html);
+        Assert.Contains("Insights", html);
+        Assert.Contains("id=\"longRangeTrendChart\"", html);
+        Assert.Contains("\"date\":\"2025-11-01\"", html);
+        Assert.Contains("Latest", html);
+        Assert.Contains("82.1 kg", html);
+        Assert.Contains("High", html);
+        Assert.Contains("84.0 kg", html);
+        Assert.Contains("Low", html);
+        Assert.Contains("-0.9 kg", html);
+        Assert.Contains("-1.9 kg", html);
+        Assert.Contains("Entry count", html);
+        Assert.Contains(">4</strong>", html);
+        Assert.DoesNotContain("full-history-list", html);
+        Assert.DoesNotContain("All entries", html);
+    }
+
+    [Fact]
+    public async Task Dashboard_WithNoEntries_RendersEmptyDeepInsights()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg");
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, html);
+        Assert.Contains("Long-term trend", html);
+        Assert.Contains("Insights", html);
+        Assert.Contains("id=\"longRangeTrendChart\"", html);
+        Assert.Contains("Entry count", html);
+        Assert.Contains(">0</strong>", html);
+        Assert.Contains("No weights recorded yet.", html);
+    }
+
+    [Fact]
     public async Task Save_WithInvalidWeight_ReturnsValidationAndDoesNotPersist()
     {
         await using var app = new DashboardTestApp();
