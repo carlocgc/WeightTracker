@@ -238,4 +238,3 @@ public sealed class IndexModel(
         return requested > currentMonth ? currentMonth : requested;
     }
 }
-
