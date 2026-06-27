@@ -14,24 +14,25 @@ This roadmap tracks product and delivery work that is still useful after the ini
 - Mobile-first dashboard with calendar-based entry dialog.
 - Dark, compact application styling.
 - Automated tests for services, persistence, startup, and dashboard behavior.
+- Scrollable dashboard deep insights with long-term trend and focused metrics.
 
 ## Near-Term Work
 
-### History Page
+### Dashboard Goal Feature
 
-Add a dedicated history page for longer-range review outside the compact dashboard.
+Add goal management as a focused dashboard feature rather than a general setting.
 
-- Show a larger trend chart.
-- Show all available entries in descending date order.
-- Include useful summary metrics such as high, low, 30-day change, and 90-day change.
-- Keep display-unit conversion consistent with the dashboard.
+- Show a compact Goal panel directly below the latest weight hero.
+- Use a small trophy icon button to open a goal modal.
+- Let users set, update, and clear the optional goal.
+- Keep goal input in the active display unit while storing kilograms internally.
+- Preserve the existing dashboard flow without adding a new page.
 
 ### Settings Page
 
-Add a settings page so users can change saved preferences from the UI.
+Add a settings page so users can change non-goal preferences from the UI.
 
 - Display unit: `kg` or `lb`.
-- Optional goal weight.
 - Week start day.
 - Application time zone.
 - Theme preference.
