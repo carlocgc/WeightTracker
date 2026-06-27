@@ -129,7 +129,9 @@ input:focus-visible {
 .weight-hero,
 .trend-panel,
 .history-panel,
-.metric-strip article {
+.insights-panel,
+.metric-strip article,
+.insight-grid article {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-raised);
@@ -199,8 +201,38 @@ input:focus-visible {
   line-height: 1.15;
 }
 
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.insight-grid article {
+  min-width: 0;
+  padding: 12px;
+}
+
+.insight-grid span,
+.insight-grid strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.insight-grid span {
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.insight-grid strong {
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
 .trend-panel,
-.history-panel {
+.history-panel,
+.insights-panel {
   padding: 14px;
 }
 
@@ -208,6 +240,10 @@ input:focus-visible {
   position: relative;
   height: 220px;
   overflow: hidden;
+}
+
+.trend-chart-frame--long {
+  height: 300px;
 }
 
 .trend-panel canvas {
