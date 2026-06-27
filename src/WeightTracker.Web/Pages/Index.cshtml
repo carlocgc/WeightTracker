@@ -3,77 +3,158 @@
 @{
     ViewData["Title"] = "Dashboard";
     ViewData["Theme"] = Model.Theme;
+    var initialDay = Model.CalendarDays.LastOrDefault(day => !day.IsFuture) ?? Model.CalendarDays.FirstOrDefault();
 }
 
 <div asp-validation-summary="All" class="validation-summary"></div>
 
-<section class="entry-feed" aria-label="Daily weight entries">
-    @foreach (var card in Model.Cards)
-    {
-        <article class="entry-card">
-            <div class="entry-card__header">
-                <div>
-                    <p class="eyebrow">@(card.IsToday ? "Today" : card.EntryDate.DayOfWeek)</p>
-                    <h2>@card.EntryDate.ToString("dddd, dd MMM yyyy")</h2>
-                </div>
-                <strong>@Model.FormatWeight(card.WeightKg)</strong>
-            </div>
+<div class="weight-app">
+    <header class="app-header">
+        <div>
+            <p class="eyebrow">WeightTracker</p>
+            <h1>Dashboard</h1>
+        </div>
+        <span class="app-header__date">@Model.Today.ToString("dd MMM")</span>
+    </header>
 
-            <form method="post" class="entry-form">
-                <input type="hidden" name="EntryDate" value="@card.EntryDate.ToString("O")" />
+    <section class="weight-hero" aria-label="Latest weight">
+        <div>
+            <p class="eyebrow">Latest weight</p>
+            <strong class="weight-hero__value">@Model.FormatWeight(Model.Summary.LatestWeightKg)</strong>
+        </div>
+        <button type="button" class="primary-action" data-open-entry>Add / Update</button>
+    </section>
 
-                <label for="weight-@card.EntryDate.ToString("yyyyMMdd")">
-                    @if (card.IsToday)
-                    {
-                        <text>Today's weight</text>
-                    }
-                    else
-                    {
-                        <text>Weight</text>
-                    }
-                    (@Model.DisplayUnit)
-                </label>
-                <input id="weight-@card.EntryDate.ToString("yyyyMMdd")"
-                       name="Weight"
-                       value="@Model.InputValue(card)"
-                       type="text"
-                       inputmode="decimal"
-                       autocomplete="off"
-                       data-decimal-input
-                       aria-describedby="weight-validation-@card.EntryDate.ToString("yyyyMMdd")" />
-                <span id="weight-validation-@card.EntryDate.ToString("yyyyMMdd")" asp-validation-for="Weight"></span>
-
-                <div class="entry-card__actions">
-                    <button type="submit">@(card.HasEntry ? "Update" : "Save")</button>
-                    @if (card.CanDelete)
-                    {
-                        <button type="submit"
-                                class="button-secondary"
-                                asp-page-handler="Delete"
-                                onclick="return confirm('Delete this past entry?');">
-                            Delete
-                        </button>
-                    }
-                </div>
-            </form>
+    <section class="metric-strip" aria-label="Weight metrics">
+        <article>
+            <span>7-day avg</span>
+            <strong>@Model.FormatWeight(Model.Summary.SevenDayMovingAverageKg)</strong>
         </article>
-    }
-</section>
+        <article>
+            <span>Week delta</span>
+            <strong>@Model.FormatSignedWeight(Model.Summary.WeekOverWeekDeltaKg)</strong>
+        </article>
+        <article>
+            <span>@(Model.Summary.GoalWeightKg.HasValue ? "Goal gap" : "30-day")</span>
+            <strong>@Model.FormatGoalDistance()</strong>
+        </article>
+    </section>
 
-<section class="metric-grid">
-    <article><span>Latest</span><strong>@Model.FormatWeight(Model.Summary.LatestWeightKg)</strong></article>
-    <article><span>Current week</span><strong>@Model.FormatWeight(Model.Summary.CurrentWeekAverageKg)</strong></article>
-    <article><span>Previous week</span><strong>@Model.FormatWeight(Model.Summary.PreviousWeekAverageKg)</strong></article>
-    <article><span>Week delta</span><strong>@Model.FormatSignedWeight(Model.Summary.WeekOverWeekDeltaKg)</strong></article>
-</section>
+    <section class="trend-panel" aria-label="Weight trend">
+        <div class="section-heading">
+            <h2>Trend</h2>
+            <span>Last 6 months</span>
+        </div>
+        <div class="trend-chart-frame">
+            <canvas id="trendChart"></canvas>
+        </div>
+    </section>
 
-<section class="chart-panel">
-    <div class="section-heading">
-        <h2>Trend</h2>
-        <a asp-page="/History">History</a>
-    </div>
-    <canvas id="trendChart" height="260"></canvas>
-</section>
+    <section class="history-panel" aria-label="Recent history">
+        <div class="section-heading">
+            <h2>Recent history</h2>
+            <span>@Model.RecentHistory.Count entries</span>
+        </div>
+        @if (Model.RecentHistory.Count == 0)
+        {
+            <p class="empty-state">No weights recorded yet.</p>
+        }
+        else
+        {
+            <ol class="history-list">
+                @foreach (var row in Model.RecentHistory)
+                {
+                    <li>
+                        <span>@Model.FormatHistoryDate(row.EntryDate)</span>
+                        <strong>@Model.FormatWeight(row.WeightKg)</strong>
+                    </li>
+                }
+            </ol>
+        }
+    </section>
+</div>
+
+<dialog id="entryDialog" class="entry-dialog" role="dialog" aria-modal="true" aria-labelledby="entryDialogTitle">
+    <form method="post" class="entry-dialog__form">
+        <div class="entry-dialog__header">
+            <div>
+                <p class="eyebrow">New weight</p>
+                <h2 id="entryDialogTitle">@Model.CalendarMonthLabel</h2>
+            </div>
+            <button type="button" class="icon-button" data-close-entry aria-label="Close">x</button>
+        </div>
+
+        <div class="calendar-nav" aria-label="Calendar month navigation">
+            <a class="icon-button" href="?month=@Model.PreviousCalendarMonthQuery" aria-label="Previous month">&lt;</a>
+            <strong>@Model.CalendarMonthLabel</strong>
+            @if (Model.NextCalendarMonthQuery is null)
+            {
+                <span class="icon-button is-disabled" aria-hidden="true">&gt;</span>
+            }
+            else
+            {
+                <a class="icon-button" href="?month=@Model.NextCalendarMonthQuery" aria-label="Next month">&gt;</a>
+            }
+        </div>
+
+        <div class="entry-calendar" data-entry-calendar>
+            <div class="calendar-weekdays" aria-hidden="true">
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+                <span>Sun</span>
+            </div>
+            <div class="calendar-grid">
+                @for (var blank = 0; blank < Model.CalendarLeadingBlankCount; blank++)
+                {
+                    <span class="calendar-day calendar-day--blank" aria-hidden="true"></span>
+                }
+                @foreach (var day in Model.CalendarDays)
+                {
+                    var isInitialDay = initialDay is not null && day.EntryDate == initialDay.EntryDate;
+                    <button type="button"
+                            class="calendar-day @(day.IsToday ? "is-today" : null) @(day.HasEntry ? "has-entry" : null) @(isInitialDay ? "is-selected" : null)"
+                            data-calendar-day="@Model.EntryDateIso(day.EntryDate)"
+                            data-entry-date="@Model.EntryDateIso(day.EntryDate)"
+                            data-entry-weight="@Model.InputValue(day)"
+                            disabled="@day.IsFuture"
+                            aria-pressed="@(isInitialDay ? "true" : "false")">
+                        @day.EntryDate.Day
+                    </button>
+                }
+            </div>
+        </div>
+
+        <input type="hidden" id="selectedEntryDate" name="EntryDate" value="@(initialDay is null ? Model.EntryDateIso(Model.Today) : Model.EntryDateIso(initialDay.EntryDate))" />
+
+        <label class="weight-input-label" for="weightInput">Weight (@Model.DisplayUnit)</label>
+        <input id="weightInput"
+               class="weight-input"
+               name="Weight"
+               value="@(initialDay is null ? Model.InputWeightValue(Model.TodayWeightKg) : Model.InputValue(initialDay))"
+               type="text"
+               inputmode="decimal"
+               autocomplete="off"
+               data-decimal-input
+               aria-describedby="weight-validation" />
+        <span id="weight-validation" asp-validation-for="Weight"></span>
+
+        <div class="entry-dialog__actions">
+            <button type="submit" class="primary-action">Save</button>
+            <button type="submit"
+                    class="secondary-action"
+                    asp-page-handler="Delete"
+                    data-delete-entry
+                    hidden="@(initialDay is null || !initialDay.HasEntry || initialDay.IsToday)"
+                    onclick="return confirm('Delete this past entry?');">
+                Delete
+            </button>
+        </div>
+    </form>
+</dialog>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
@@ -101,6 +182,54 @@
             });
         });
 
+        const today = '@Model.EntryDateIso(Model.Today)';
+        const entryDialog = document.getElementById('entryDialog');
+        const weightInput = document.getElementById('weightInput');
+        const selectedEntryDate = document.getElementById('selectedEntryDate');
+        const deleteButton = document.querySelector('[data-delete-entry]');
+        const calendarDays = Array.from(document.querySelectorAll('[data-calendar-day]'));
+
+        function selectCalendarDay(dayButton) {
+            calendarDays.forEach((button) => {
+                button.classList.toggle('is-selected', button === dayButton);
+                button.setAttribute('aria-pressed', button === dayButton ? 'true' : 'false');
+            });
+
+            selectedEntryDate.value = dayButton.dataset.calendarDay;
+            weightInput.value = dayButton.dataset.entryWeight || '';
+
+            if (deleteButton) {
+                deleteButton.hidden = !dayButton.dataset.entryWeight || dayButton.dataset.calendarDay >= today;
+            }
+        }
+
+        calendarDays.forEach((button) => {
+            button.addEventListener('click', () => selectCalendarDay(button));
+        });
+
+        document.querySelectorAll('[data-open-entry]').forEach((button) => {
+            button.addEventListener('click', () => {
+                if (entryDialog.showModal) {
+                    entryDialog.showModal();
+                } else {
+                    entryDialog.setAttribute('open', 'open');
+                }
+                weightInput.focus();
+            });
+        });
+
+        document.querySelectorAll('[data-close-entry]').forEach((button) => {
+            button.addEventListener('click', () => entryDialog.close());
+        });
+
+        if (document.querySelector('.validation-summary-errors') && entryDialog) {
+            if (entryDialog.showModal) {
+                entryDialog.showModal();
+            } else {
+                entryDialog.setAttribute('open', 'open');
+            }
+        }
+
         const daily = @Json.Serialize(Model.Chart.DailyWeights);
         const moving = @Json.Serialize(Model.Chart.MovingAverages);
         const goal = @Json.Serialize(Model.Chart.GoalWeightKg);
@@ -112,12 +241,20 @@
                 data: {
                     labels,
                     datasets: [
-                        { label: 'Daily', data: daily.map(point => point.weightKg), borderColor: '#64d2ff', tension: 0.25 },
-                        { label: '7-day avg', data: moving.map(point => point.weightKg), borderColor: '#ffd166', tension: 0.25 },
-                        { label: 'Goal', data: goal ? labels.map(() => goal) : [], borderColor: '#7bd88f', borderDash: [6, 6], pointRadius: 0 }
+                        { label: 'Daily', data: daily.map(point => point.weightKg), borderColor: '#28f0d4', backgroundColor: 'rgba(40, 240, 212, 0.12)', tension: 0.35, pointRadius: 2 },
+                        { label: '7-day avg', data: moving.map(point => point.weightKg), borderColor: '#f8c14a', tension: 0.35, pointRadius: 0 },
+                        { label: 'Goal', data: goal ? labels.map(() => goal) : [], borderColor: '#85e89d', borderDash: [6, 6], pointRadius: 0 }
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7d8798', maxTicksLimit: 4 } },
+                        y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#7d8798' } }
+                    }
+                }
             });
         }
     </script>
