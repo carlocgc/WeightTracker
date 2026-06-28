@@ -119,6 +119,118 @@ public sealed class DashboardPageTests
     }
 
     [Fact]
+    public async Task Dashboard_WithNoGoal_RendersGoalPanelAndSetAction()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg");
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, html);
+        Assert.Contains("aria-label=\"Goal\"", html);
+        Assert.Contains("No goal set", html);
+        Assert.Contains("Set a target weight", html);
+        Assert.Contains("aria-label=\"Set goal\"", html);
+        Assert.Contains("id=\"goalDialog\"", html);
+        Assert.Contains("name=\"GoalWeight\"", html);
+        Assert.DoesNotContain("Clear goal", html);
+    }
+
+    [Fact]
+    public async Task Dashboard_WithGoal_RendersGoalPanelAndEditAction()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg", goalWeightKg: 78m);
+        await app.AddEntryAsync(Today, 82.1m);
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, html);
+        Assert.Contains("aria-label=\"Goal\"", html);
+        Assert.Contains("78.0 kg", html);
+        Assert.Contains("+4.1 kg", html);
+        Assert.Contains("aria-label=\"Edit goal\"", html);
+        Assert.Contains("value=\"78.0\"", html);
+        Assert.Contains("Clear goal", html);
+    }
+
+    [Fact]
+    public async Task SaveGoal_WithSelectedDisplayUnit_PersistsConvertedGoal()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("lb", weekStartsOn: DayOfWeek.Sunday, timeZoneId: "Europe/London", theme: "light");
+        var client = app.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+        var token = await GetRequestVerificationTokenAsync(client);
+
+        var response = await client.PostAsync("/?handler=Goal", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["GoalWeight"] = "180"
+        }));
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        var settings = await app.GetSettingsAsync();
+        Assert.Equal("lb", settings.DisplayUnit);
+        Assert.Equal(81.647m, settings.GoalWeightKg);
+        Assert.Equal(DayOfWeek.Sunday, settings.WeekStartsOn);
+        Assert.Equal("Europe/London", settings.TimeZoneId);
+        Assert.Equal("light", settings.Theme);
+    }
+
+    [Fact]
+    public async Task SaveGoal_WithInvalidGoal_ReturnsValidationAndReopensGoalDialog()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg");
+        var client = app.CreateClient();
+        var token = await GetRequestVerificationTokenAsync(client);
+
+        var response = await client.PostAsync("/?handler=Goal", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["GoalWeight"] = "0"
+        }));
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Enter a goal greater than zero.", html);
+        Assert.Contains("data-open-goal-on-load=\"true\"", html);
+        Assert.Null((await app.GetSettingsAsync()).GoalWeightKg);
+    }
+
+    [Fact]
+    public async Task ClearGoal_RemovesGoalAndPreservesOtherSettings()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("lb", goalWeightKg: 80m, weekStartsOn: DayOfWeek.Sunday, timeZoneId: "Europe/London", theme: "light");
+        var client = app.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+        var token = await GetRequestVerificationTokenAsync(client);
+
+        var response = await client.PostAsync("/?handler=ClearGoal", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token
+        }));
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        var settings = await app.GetSettingsAsync();
+        Assert.Equal("lb", settings.DisplayUnit);
+        Assert.Null(settings.GoalWeightKg);
+        Assert.Equal(DayOfWeek.Sunday, settings.WeekStartsOn);
+        Assert.Equal("Europe/London", settings.TimeZoneId);
+        Assert.Equal("light", settings.Theme);
+    }
+
+    [Fact]
     public async Task Save_WithInvalidWeight_ReturnsValidationAndDoesNotPersist()
     {
         await using var app = new DashboardTestApp();
@@ -221,11 +333,16 @@ public sealed class DashboardPageTests
             db.Database.EnsureCreated();
         }
 
-        public async Task UpdateSettingsAsync(string displayUnit)
+        public async Task UpdateSettingsAsync(
+            string displayUnit,
+            decimal? goalWeightKg = null,
+            DayOfWeek weekStartsOn = DayOfWeek.Monday,
+            string timeZoneId = "Europe/London",
+            string theme = "dark")
         {
             using var scope = Services.CreateScope();
             var settings = scope.ServiceProvider.GetRequiredService<SettingsService>();
-            await settings.UpdateAsync(displayUnit, null, DayOfWeek.Monday, "Europe/London", "dark");
+            await settings.UpdateAsync(displayUnit, goalWeightKg, weekStartsOn, timeZoneId, theme);
         }
 
         public async Task AddEntryAsync(DateOnly entryDate, decimal weightKg)
@@ -250,6 +367,13 @@ public sealed class DashboardPageTests
                 .AsNoTracking()
                 .OrderBy(entry => entry.EntryDate)
                 .ToListAsync();
+        }
+
+        public async Task<AppSettings> GetSettingsAsync()
+        {
+            using var scope = Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<WeightTrackerDbContext>();
+            return await db.AppSettings.AsNoTracking().SingleAsync(settings => settings.Id == AppSettings.SingletonId);
         }
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
