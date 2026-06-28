@@ -7,6 +7,10 @@
 }
 
 <div asp-validation-summary="All" class="validation-summary"></div>
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="status-message" role="status">@Model.StatusMessage</div>
+}
 
 <div class="weight-app">
     <header class="app-header">
@@ -122,6 +126,21 @@
                 <span>Entry count</span>
                 <strong>@Model.EntryCount</strong>
             </article>
+        </div>
+    </section>
+    <section class="data-panel" aria-label="Data management">
+        <div class="section-heading">
+            <h2>Data</h2>
+            <span>Weight entries only</span>
+        </div>
+        <div class="data-actions">
+            <a class="primary-action" asp-page-handler="ExportCsv">Export CSV</a>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="ImportCsv" class="data-upload">
+                <label class="weight-input-label" for="importFile">Import CSV</label>
+                <input id="importFile" class="file-input" type="file" name="ImportFile" accept=".csv,text/csv" />
+                <button type="submit" class="secondary-action secondary-action--neutral">Import CSV</button>
+            </form>
+            <button type="button" class="secondary-action" data-open-delete-all>Delete all</button>
         </div>
     </section>
 </div>
@@ -241,6 +260,47 @@
     </form>
 </dialog>
 
+<dialog id="deleteAllWarningDialog" class="delete-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteAllWarningTitle">
+    <div class="entry-dialog__form">
+        <div class="entry-dialog__header">
+            <div>
+                <p class="eyebrow">Delete all</p>
+                <h2 id="deleteAllWarningTitle">Delete every weight entry?</h2>
+            </div>
+            <button type="button" class="icon-button" data-close-delete-all-warning aria-label="Close">x</button>
+        </div>
+        <p class="dialog-copy">This permanently deletes all recorded weights. Export a CSV first if you need a backup.</p>
+        <div class="entry-dialog__actions">
+            <button type="button" class="secondary-action" data-continue-delete-all>Continue</button>
+            <button type="button" class="secondary-action secondary-action--neutral" data-close-delete-all-warning>Cancel</button>
+        </div>
+    </div>
+</dialog>
+
+<dialog id="deleteAllConfirmDialog" class="delete-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteAllConfirmTitle">
+    <form method="post" class="entry-dialog__form" asp-page-handler="DeleteAllWeights">
+        <div class="entry-dialog__header">
+            <div>
+                <p class="eyebrow">Confirm</p>
+                <h2 id="deleteAllConfirmTitle">Type DELETE</h2>
+            </div>
+            <button type="button" class="icon-button" data-close-delete-all-confirm aria-label="Close">x</button>
+        </div>
+        <p class="dialog-copy">This action cannot be undone. Settings and goals stay unchanged.</p>
+        <label class="weight-input-label" for="deleteAllConfirmation">Confirmation</label>
+        <input id="deleteAllConfirmation"
+               class="text-input"
+               name="DeleteAllConfirmation"
+               type="text"
+               autocomplete="off"
+               data-delete-all-confirm-input />
+        <div class="entry-dialog__actions">
+            <button type="submit" class="secondary-action" data-delete-all-submit disabled>Delete all</button>
+            <button type="button" class="secondary-action secondary-action--neutral" data-close-delete-all-confirm>Cancel</button>
+        </div>
+    </form>
+</dialog>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -275,6 +335,10 @@
         const selectedEntryDate = document.getElementById('selectedEntryDate');
         const deleteButton = document.querySelector('[data-delete-entry]');
         const calendarDays = Array.from(document.querySelectorAll('[data-calendar-day]'));
+        const deleteAllWarningDialog = document.getElementById('deleteAllWarningDialog');
+        const deleteAllConfirmDialog = document.getElementById('deleteAllConfirmDialog');
+        const deleteAllConfirmInput = document.querySelector('[data-delete-all-confirm-input]');
+        const deleteAllSubmit = document.querySelector('[data-delete-all-submit]');
 
         function selectCalendarDay(dayButton) {
             calendarDays.forEach((button) => {
@@ -333,6 +397,61 @@
             goalWeightInput.focus();
         }
 
+        function showDialog(dialog) {
+            if (!dialog) {
+                return;
+            }
+
+            if (dialog.showModal) {
+                dialog.showModal();
+            } else {
+                dialog.setAttribute('open', 'open');
+            }
+        }
+
+        function closeDialog(dialog) {
+            if (!dialog) {
+                return;
+            }
+
+            if (dialog.close) {
+                dialog.close();
+            } else {
+                dialog.removeAttribute('open');
+            }
+        }
+
+        document.querySelectorAll('[data-open-delete-all]').forEach((button) => {
+            button.addEventListener('click', () => showDialog(deleteAllWarningDialog));
+        });
+
+        document.querySelectorAll('[data-close-delete-all-warning]').forEach((button) => {
+            button.addEventListener('click', () => closeDialog(deleteAllWarningDialog));
+        });
+
+        document.querySelectorAll('[data-continue-delete-all]').forEach((button) => {
+            button.addEventListener('click', () => {
+                closeDialog(deleteAllWarningDialog);
+                if (deleteAllConfirmInput) {
+                    deleteAllConfirmInput.value = '';
+                }
+                if (deleteAllSubmit) {
+                    deleteAllSubmit.disabled = true;
+                }
+                showDialog(deleteAllConfirmDialog);
+                deleteAllConfirmInput?.focus();
+            });
+        });
+
+        document.querySelectorAll('[data-close-delete-all-confirm]').forEach((button) => {
+            button.addEventListener('click', () => closeDialog(deleteAllConfirmDialog));
+        });
+
+        deleteAllConfirmInput?.addEventListener('input', () => {
+            if (deleteAllSubmit) {
+                deleteAllSubmit.disabled = deleteAllConfirmInput.value !== 'DELETE';
+            }
+        });
         if (document.querySelector('.validation-summary-errors') && entryDialog && goalDialog?.dataset.openGoalOnLoad !== 'true') {
             if (entryDialog.showModal) {
                 entryDialog.showModal();
