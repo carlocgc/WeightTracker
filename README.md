@@ -13,11 +13,22 @@ The app currently includes:
 - Time-zone-aware entry dates.
 - Saved settings for unit, goal, week start, time zone, and theme.
 - Trend metrics and dashboard chart data.
+- CSV export/import and guarded delete-all tools for weight-entry data.
 - Service, persistence, startup, and dashboard tests.
 
 Remaining product and deployment work is tracked in:
 
 - `docs/ROADMAP.md`
+
+## Backups And Migration
+
+Use the dashboard Data section to export, import, or clear weight-entry data.
+
+CSV export downloads all recorded weights as `entry_date`, `weight_kg`, and `note` columns. Weights are always exported in stored kilograms, independent of the current display unit.
+
+CSV import accepts the same columns, validates the full file before writing anything, and updates existing entries by `entry_date`. Settings such as display unit, goal, week start, time zone, and theme are not imported or exported.
+
+Delete all removes only weight entries. It leaves settings unchanged and requires a two-step confirmation with exact `DELETE`.
 
 ## Development
 
@@ -43,7 +54,7 @@ The app is published locally on:
 http://localhost:18080
 ```
 
-The container listens on internal HTTP port `8080` and stores SQLite data at `/data/weighttracker.db`. The compose file mounts a named volume at `/data` so local app data survives container recreation.
+The container listens on internal HTTP port `8080` and stores SQLite data at `/data/weighttracker.db`. ASP.NET Data Protection keys are stored beside the database at `/data/DataProtectionKeys` by default, so antiforgery tokens survive container recreation. The compose file mounts a named volume at `/data` so local app data survives container recreation. Set `DataProtection__KeysPath` to override the key directory.
 
 To run the published Docker Hub image directly:
 

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using WeightTracker.Web.Data;
 using WeightTracker.Web.Services;
@@ -13,12 +14,21 @@ if (string.IsNullOrWhiteSpace(connectionString))
 }
 
 connectionString = DatabaseInitializer.NormalizeSqliteConnectionString(connectionString, builder.Environment.ContentRootPath);
+var dataProtectionKeyDirectory = DataProtectionKeyDirectory.Resolve(
+    builder.Configuration["DataProtection:KeysPath"],
+    connectionString,
+    builder.Environment.ContentRootPath);
+Directory.CreateDirectory(dataProtectionKeyDirectory.FullName);
+builder.Services.AddDataProtection()
+    .SetApplicationName("WeightTracker")
+    .PersistKeysToFileSystem(dataProtectionKeyDirectory);
 builder.Services.AddDbContext<WeightTrackerDbContext>(options =>
     options.UseSqlite(connectionString));
 builder.Services.AddScoped<SettingsService>();
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddScoped<ILocalDateProvider, LocalDateProvider>();
 builder.Services.AddScoped<WeightEntryService>();
+builder.Services.AddScoped<WeightDataService>();
 builder.Services.AddScoped<MetricsService>();
 
 var app = builder.Build();

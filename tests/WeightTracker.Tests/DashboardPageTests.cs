@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -310,6 +312,163 @@ public sealed class DashboardPageTests
         Assert.Contains(await app.GetEntriesAsync(), entry => entry.EntryDate == Today);
     }
 
+    [Fact]
+    public async Task Dashboard_RendersDataManagementSection()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg");
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, html);
+        Assert.Contains("aria-label=\"Data management\"", html);
+        Assert.Contains("Export CSV", html);
+        Assert.Contains("name=\"ImportFile\"", html);
+        Assert.Contains("Delete all", html);
+        Assert.Contains("id=\"deleteAllWarningDialog\"", html);
+        Assert.Contains("id=\"deleteAllConfirmDialog\"", html);
+    }
+
+    [Fact]
+    public async Task ExportCsv_ReturnsWeightCsvDownload()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg");
+        await app.AddEntryAsync(Yesterday, 82.4m);
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/?handler=ExportCsv");
+        var csv = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/csv", response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("weighttracker-weights-20260626.csv", response.Content.Headers.ContentDisposition?.FileNameStar ?? response.Content.Headers.ContentDisposition?.FileName);
+        Assert.Equal("entry_date,weight_kg,note\n2026-06-25,82.400,\n", csv);
+    }
+
+    [Fact]
+    public async Task ImportCsv_WithValidCsv_RedirectsAndPersistsEntries()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg");
+        await app.AddEntryAsync(Yesterday, 90m);
+        var client = app.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+        var token = await GetRequestVerificationTokenAsync(client);
+        using var form = CreateCsvUpload(token, "entry_date,weight_kg,note\n2026-06-25,82.400,updated\n2026-06-26,82.100,\n");
+
+        var response = await client.PostAsync("/?handler=ImportCsv", form);
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        var entries = await app.GetEntriesAsync();
+        Assert.Collection(
+            entries,
+            entry =>
+            {
+                Assert.Equal(Yesterday, entry.EntryDate);
+                Assert.Equal(82.400m, entry.WeightKg);
+                Assert.Equal("updated", entry.Note);
+            },
+            entry =>
+            {
+                Assert.Equal(Today, entry.EntryDate);
+                Assert.Equal(82.100m, entry.WeightKg);
+                Assert.Null(entry.Note);
+            });
+    }
+
+    [Fact]
+    public async Task ImportCsv_WithInvalidCsv_ReturnsValidationAndDoesNotPartiallyPersist()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg");
+        await app.AddEntryAsync(Yesterday, 90m);
+        var client = app.CreateClient();
+        var token = await GetRequestVerificationTokenAsync(client);
+        using var form = CreateCsvUpload(token, "entry_date,weight_kg,note\n2026-06-25,82.400,updated\n2026-06-26,1000.001,invalid\n");
+
+        var response = await client.PostAsync("/?handler=ImportCsv", form);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Row 3", html);
+        var entry = Assert.Single(await app.GetEntriesAsync());
+        Assert.Equal(Yesterday, entry.EntryDate);
+        Assert.Equal(90m, entry.WeightKg);
+    }
+
+    [Fact]
+    public async Task DeleteAllWeights_WithInvalidConfirmation_ReturnsValidationAndPreservesEntries()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg");
+        await app.AddEntryAsync(Yesterday, 82.4m);
+        var client = app.CreateClient();
+        var token = await GetRequestVerificationTokenAsync(client);
+
+        var response = await client.PostAsync("/?handler=DeleteAllWeights", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["DeleteAllConfirmation"] = "delete"
+        }));
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Type DELETE", html);
+        Assert.Single(await app.GetEntriesAsync());
+    }
+
+    [Fact]
+    public async Task DeleteAllWeights_WithExactConfirmation_DeletesEntriesAndPreservesSettings()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("lb", goalWeightKg: 75m, weekStartsOn: DayOfWeek.Sunday, timeZoneId: "Europe/London", theme: "light");
+        await app.AddEntryAsync(Yesterday, 82.4m);
+        await app.AddEntryAsync(Today, 82.1m);
+        var client = app.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+        var token = await GetRequestVerificationTokenAsync(client);
+
+        var response = await client.PostAsync("/?handler=DeleteAllWeights", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["DeleteAllConfirmation"] = "DELETE"
+        }));
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Empty(await app.GetEntriesAsync());
+        var settings = await app.GetSettingsAsync();
+        Assert.Equal("lb", settings.DisplayUnit);
+        Assert.Equal(75m, settings.GoalWeightKg);
+        Assert.Equal(DayOfWeek.Sunday, settings.WeekStartsOn);
+        Assert.Equal("Europe/London", settings.TimeZoneId);
+        Assert.Equal("light", settings.Theme);
+    }
+
+    [Fact]
+    public async Task ImportCsv_WithLargeCsv_RedirectsToDashboard()
+    {
+        await using var app = new DashboardTestApp(new DateTime(2026, 6, 28, 9, 0, 0, DateTimeKind.Utc));
+        await app.UpdateSettingsAsync("kg");
+        var client = app.CreateClient();
+        var token = await GetRequestVerificationTokenAsync(client);
+        using var form = CreateCsvUpload(token, BuildLargeCsv());
+
+        var response = await client.PostAsync("/?handler=ImportCsv", form);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("aria-label=\"Data management\"", html);
+        Assert.Contains("Entry count", html);
+        Assert.Contains(">791</strong>", html);
+    }
+
     private static async Task<string> GetRequestVerificationTokenAsync(HttpClient client)
     {
         var html = await client.GetStringAsync("/");
@@ -321,12 +480,45 @@ public sealed class DashboardPageTests
         return match.Groups["token"].Value;
     }
 
+    private static MultipartFormDataContent CreateCsvUpload(string token, string csv)
+    {
+        var form = new MultipartFormDataContent
+        {
+            { new StringContent(token), "__RequestVerificationToken" }
+        };
+        var file = new ByteArrayContent(Encoding.UTF8.GetBytes(csv));
+        file.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
+        form.Add(file, "ImportFile", "weights.csv");
+        return form;
+    }
+
+    private static string BuildLargeCsv()
+    {
+        var builder = new StringBuilder("entry_date,weight_kg,note\n");
+        var start = new DateOnly(2024, 4, 29);
+        for (var offset = 0; offset < 791; offset++)
+        {
+            builder.Append(start.AddDays(offset).ToString("yyyy-MM-dd"));
+            builder.Append(",93.850,\n");
+        }
+
+        return builder.ToString();
+    }
     private sealed class DashboardTestApp : WebApplicationFactory<Program>
     {
-        private readonly SqliteConnection _connection = new("Data Source=:memory:");
+        private static readonly DateTime DefaultUtcNow = new(2026, 6, 26, 9, 0, 0, DateTimeKind.Utc);
 
-        public DashboardTestApp()
+        private readonly SqliteConnection _connection = new("Data Source=:memory:");
+        private readonly DateTime _utcNow;
+        private readonly string _dataProtectionKeysPath = Path.Combine(
+            Path.GetTempPath(),
+            "weighttracker-tests",
+            Guid.NewGuid().ToString("N"),
+            "DataProtectionKeys");
+
+        public DashboardTestApp(DateTime? utcNow = null)
         {
+            _utcNow = utcNow ?? DefaultUtcNow;
             _connection.Open();
             using var scope = Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<WeightTrackerDbContext>();
@@ -353,8 +545,8 @@ public sealed class DashboardPageTests
             {
                 EntryDate = entryDate,
                 WeightKg = weightKg,
-                CreatedAtUtc = new DateTime(2026, 6, 26, 9, 0, 0, DateTimeKind.Utc),
-                UpdatedAtUtc = new DateTime(2026, 6, 26, 9, 0, 0, DateTimeKind.Utc)
+                CreatedAtUtc = _utcNow,
+                UpdatedAtUtc = _utcNow
             });
             await db.SaveChangesAsync();
         }
@@ -378,13 +570,14 @@ public sealed class DashboardPageTests
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            builder.UseSetting("DataProtection:KeysPath", _dataProtectionKeysPath);
             builder.ConfigureLogging(logging => logging.ClearProviders());
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<DbContextOptions<WeightTrackerDbContext>>();
                 services.RemoveAll<IClock>();
                 services.AddDbContext<WeightTrackerDbContext>(options => options.UseSqlite(_connection));
-                services.AddSingleton<IClock>(new FixedClock(new DateTime(2026, 6, 26, 9, 0, 0, DateTimeKind.Utc)));
+                services.AddSingleton<IClock>(new FixedClock(_utcNow));
             });
         }
 

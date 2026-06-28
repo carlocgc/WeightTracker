@@ -20,6 +20,7 @@ public class HomePageTests(WebApplicationFactory<Program> factory) : IClassFixtu
         await connection.OpenAsync();
         await using var app = factory.WithWebHostBuilder(builder =>
         {
+            builder.UseSetting("DataProtection:KeysPath", Path.Combine(Path.GetTempPath(), "weighttracker-tests", Guid.NewGuid().ToString("N"), "DataProtectionKeys"));
             builder.ConfigureLogging(logging => logging.ClearProviders());
             builder.ConfigureServices(services =>
             {
