@@ -5,8 +5,9 @@
 bin/
 obj/
 out/
-dist/
+/dist/
 build/
+artifacts/
 
 # .NET and IDE state
 .vs/
@@ -21,8 +22,10 @@ coverage.*
 *.trx
 
 # Runtime data
-data/
+/data/
+/src/WeightTracker.Web/App_Data/
 *.db
+*.db-journal
 *.db-shm
 *.db-wal
 *.sqlite

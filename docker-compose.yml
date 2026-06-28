@@ -1,0 +1,17 @@
+services:
+  weighttracker:
+    image: weighttracker:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__WeightTracker: Data Source=/data/weighttracker.db
+    ports:
+      - "18080:8080"
+    volumes:
+      - weighttracker-data:/data
+
+volumes:
+  weighttracker-data:
