@@ -32,6 +32,9 @@ public sealed class IndexModel(
     [BindProperty]
     public decimal? Weight { get; set; }
 
+    [BindProperty]
+    public decimal? GoalWeight { get; set; }
+
     [BindProperty(SupportsGet = true, Name = "month")]
     public string? CalendarMonth { get; set; }
 
@@ -62,6 +65,10 @@ public sealed class IndexModel(
     public ChartSeries LongRangeChart { get; private set; } = new([], [], [], null);
 
     public int EntryCount { get; private set; }
+
+    public bool GoalDialogOpen { get; private set; }
+
+    public string GoalDialogOpenAttribute => GoalDialogOpen ? "true" : "false";
 
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
@@ -103,6 +110,43 @@ public sealed class IndexModel(
             await LoadAsync(cancellationToken);
             return Page();
         }
+
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostGoalAsync(CancellationToken cancellationToken)
+    {
+        if (GoalWeight is null or <= 0)
+        {
+            ModelState.AddModelError(nameof(GoalWeight), "Enter a goal greater than zero.");
+            GoalDialogOpen = true;
+            await LoadAsync(cancellationToken);
+            return Page();
+        }
+
+        var settings = await settingsService.GetAsync(cancellationToken);
+        var goalWeightKg = decimal.Round(WeightConversionService.ToKilograms(GoalWeight.Value, settings.DisplayUnit), 3);
+        await settingsService.UpdateAsync(
+            settings.DisplayUnit,
+            goalWeightKg,
+            settings.WeekStartsOn,
+            settings.TimeZoneId,
+            settings.Theme,
+            cancellationToken);
+
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostClearGoalAsync(CancellationToken cancellationToken)
+    {
+        var settings = await settingsService.GetAsync(cancellationToken);
+        await settingsService.UpdateAsync(
+            settings.DisplayUnit,
+            null,
+            settings.WeekStartsOn,
+            settings.TimeZoneId,
+            settings.Theme,
+            cancellationToken);
 
         return RedirectToPage();
     }
@@ -149,6 +193,12 @@ public sealed class IndexModel(
         Chart = metricsService.BuildChartSeries(compactChartEntries, settings.WeekStartsOn, settings.GoalWeightKg);
         LongRangeChart = metricsService.BuildChartSeries(entries, settings.WeekStartsOn, settings.GoalWeightKg);
         EntryCount = entries.Count;
+        if (!GoalDialogOpen)
+        {
+            GoalWeight = Summary.GoalWeightKg.HasValue
+                ? decimal.Round(WeightConversionService.FromKilograms(Summary.GoalWeightKg.Value, DisplayUnit), 1)
+                : null;
+        }
     }
 
     public string CalendarMonthLabel => VisibleMonth.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
@@ -188,6 +238,35 @@ public sealed class IndexModel(
         return Summary.LatestWeightKg.HasValue && Summary.GoalWeightKg.HasValue
             ? FormatSignedWeight(Summary.LatestWeightKg.Value - Summary.GoalWeightKg.Value)
             : FormatSignedWeight(Summary.ThirtyDayChangeKg);
+    }
+
+    public bool HasGoal => Summary.GoalWeightKg.HasValue;
+
+    public string GoalActionLabel => HasGoal ? "Edit goal" : "Set goal";
+
+    public string FormatGoalPanelDetail()
+    {
+        if (!Summary.GoalWeightKg.HasValue)
+        {
+            return "Set a target weight";
+        }
+
+        if (!Summary.LatestWeightKg.HasValue)
+        {
+            return "Waiting for your first weight";
+        }
+
+        return FormatSignedWeight(Summary.LatestWeightKg.Value - Summary.GoalWeightKg.Value);
+    }
+
+    public string GoalInputValue()
+    {
+        if (GoalDialogOpen && GoalWeight.HasValue)
+        {
+            return GoalWeight.Value.ToString("0.0", CultureInfo.InvariantCulture);
+        }
+
+        return InputWeightValue(Summary.GoalWeightKg);
     }
 
     public string InputValue(DashboardCalendarDay day)
