@@ -1,0 +1,78 @@
+name: PR Build
+
+on:
+  pull_request:
+    branches:
+      - development
+  push:
+    branches:
+      - development
+
+env:
+  DOTNET_VERSION: 10.0.x
+  IMAGE_NAME: weighttracker:ci
+  CONTAINER_NAME: weighttracker-ci
+  HOST_PORT: "18080"
+  CONTAINER_PORT: "8080"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore app
+        run: dotnet restore ./src/WeightTracker.Web/WeightTracker.Web.csproj
+
+      - name: Restore tests
+        run: dotnet restore ./tests/WeightTracker.Tests/WeightTracker.Tests.csproj
+
+      - name: Build app
+        run: dotnet build ./src/WeightTracker.Web/WeightTracker.Web.csproj --configuration Release --no-restore
+
+      - name: Build tests
+        run: dotnet build ./tests/WeightTracker.Tests/WeightTracker.Tests.csproj --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test ./tests/WeightTracker.Tests/WeightTracker.Tests.csproj --configuration Release --no-build
+
+      - name: Build Docker image
+        run: docker build --file ./Dockerfile --tag ${{ env.IMAGE_NAME }} .
+
+      - name: Smoke test Docker image
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docker rm --force "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+          docker volume rm "${CONTAINER_NAME}-data" >/dev/null 2>&1 || true
+
+          docker run --detach \
+            --name "${CONTAINER_NAME}" \
+            --publish "${HOST_PORT}:${CONTAINER_PORT}" \
+            --volume "${CONTAINER_NAME}-data:/data" \
+            "${IMAGE_NAME}"
+
+          cleanup() {
+            docker logs "${CONTAINER_NAME}" || true
+            docker rm --force "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+            docker volume rm "${CONTAINER_NAME}-data" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error "http://localhost:${HOST_PORT}/" >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "Container did not respond on host port ${HOST_PORT}."
+          exit 1

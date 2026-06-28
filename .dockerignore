@@ -1,0 +1,17 @@
+.git
+.github
+.vs
+.superpowers
+.codex-devserver.err.log
+.codex-devserver.out.log
+
+**/bin
+**/obj
+**/TestResults
+artifacts
+
+*.user
+*.suo
+*.db
+*.sqlite
+*.sqlite3
