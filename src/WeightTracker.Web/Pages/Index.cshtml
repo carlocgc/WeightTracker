@@ -25,6 +25,15 @@
         <button type="button" class="primary-action" data-open-entry>Add / Update</button>
     </section>
 
+    <section class="goal-panel" aria-label="Goal">
+        <div>
+            <p class="eyebrow">Goal</p>
+            <strong class="goal-panel__value">@(Model.HasGoal ? Model.FormatWeight(Model.Summary.GoalWeightKg) : "No goal set")</strong>
+            <span>@Model.FormatGoalPanelDetail()</span>
+        </div>
+        <button type="button" class="trophy-button" data-open-goal aria-label="@Model.GoalActionLabel">&#127942;</button>
+    </section>
+
     <section class="metric-strip" aria-label="Weight metrics">
         <article>
             <span>7-day avg</span>
@@ -199,6 +208,39 @@
     </form>
 </dialog>
 
+<dialog id="goalDialog" class="goal-dialog" role="dialog" aria-modal="true" aria-labelledby="goalDialogTitle" data-open-goal-on-load="@Model.GoalDialogOpenAttribute">
+    <form method="post" class="entry-dialog__form" asp-page-handler="Goal">
+        <div class="entry-dialog__header">
+            <div>
+                <p class="eyebrow">Goal</p>
+                <h2 id="goalDialogTitle">Target weight</h2>
+            </div>
+            <button type="button" class="icon-button" data-close-goal aria-label="Close">x</button>
+        </div>
+
+        <label class="weight-input-label" for="goalWeightInput">Goal weight (@Model.DisplayUnit)</label>
+        <input id="goalWeightInput"
+               class="weight-input"
+               name="GoalWeight"
+               value="@Model.GoalInputValue()"
+               type="text"
+               inputmode="decimal"
+               autocomplete="off"
+               data-decimal-input
+               aria-describedby="goal-validation" />
+        <span id="goal-validation" asp-validation-for="GoalWeight"></span>
+
+        <div class="entry-dialog__actions">
+            <button type="submit" class="primary-action">Save</button>
+            @if (Model.HasGoal)
+            {
+                <button type="submit" class="secondary-action" asp-page-handler="ClearGoal">Clear goal</button>
+            }
+            <button type="button" class="secondary-action secondary-action--neutral" data-close-goal>Cancel</button>
+        </div>
+    </form>
+</dialog>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -228,6 +270,8 @@
         const today = '@Model.EntryDateIso(Model.Today)';
         const entryDialog = document.getElementById('entryDialog');
         const weightInput = document.getElementById('weightInput');
+        const goalDialog = document.getElementById('goalDialog');
+        const goalWeightInput = document.getElementById('goalWeightInput');
         const selectedEntryDate = document.getElementById('selectedEntryDate');
         const deleteButton = document.querySelector('[data-delete-entry]');
         const calendarDays = Array.from(document.querySelectorAll('[data-calendar-day]'));
@@ -265,7 +309,31 @@
             button.addEventListener('click', () => entryDialog.close());
         });
 
-        if (document.querySelector('.validation-summary-errors') && entryDialog) {
+        document.querySelectorAll('[data-open-goal]').forEach((button) => {
+            button.addEventListener('click', () => {
+                if (goalDialog.showModal) {
+                    goalDialog.showModal();
+                } else {
+                    goalDialog.setAttribute('open', 'open');
+                }
+                goalWeightInput.focus();
+            });
+        });
+
+        document.querySelectorAll('[data-close-goal]').forEach((button) => {
+            button.addEventListener('click', () => goalDialog.close());
+        });
+
+        if (goalDialog && goalDialog.dataset.openGoalOnLoad === 'true') {
+            if (goalDialog.showModal) {
+                goalDialog.showModal();
+            } else {
+                goalDialog.setAttribute('open', 'open');
+            }
+            goalWeightInput.focus();
+        }
+
+        if (document.querySelector('.validation-summary-errors') && entryDialog && goalDialog?.dataset.openGoalOnLoad !== 'true') {
             if (entryDialog.showModal) {
                 entryDialog.showModal();
             } else {
