@@ -17,9 +17,16 @@ public sealed class ServiceRegistrationTests
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
+        var dataProtectionKeysPath = Path.Combine(
+            Path.GetTempPath(),
+            "weighttracker-tests",
+            Guid.NewGuid().ToString("N"),
+            "DataProtectionKeys");
+
         using var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
+                builder.UseSetting("DataProtection:KeysPath", dataProtectionKeysPath);
                 builder.ConfigureLogging(logging => logging.ClearProviders());
                 builder.ConfigureServices(services =>
                 {

@@ -59,11 +59,20 @@ input:focus-visible {
   padding: 24px 14px;
 }
 
-.validation-summary {
+.validation-summary,
+.status-message {
   width: 100%;
   max-width: 430px;
   margin: 0 auto 12px;
   color: var(--danger);
+}
+
+.status-message {
+  padding: 10px 14px;
+  border: 1px solid rgba(40, 240, 212, 0.25);
+  border-radius: 8px;
+  background: rgba(40, 240, 212, 0.08);
+  color: var(--accent);
 }
 
 .validation-summary ul {
@@ -131,6 +140,7 @@ input:focus-visible {
 .trend-panel,
 .history-panel,
 .insights-panel,
+.data-panel,
 .metric-strip article,
 .insight-grid article {
   border: 1px solid var(--line);
@@ -279,7 +289,8 @@ input:focus-visible {
 
 .trend-panel,
 .history-panel,
-.insights-panel {
+.insights-panel,
+.data-panel {
   padding: 14px;
 }
 
@@ -323,7 +334,8 @@ input:focus-visible {
 }
 
 .entry-dialog,
-.goal-dialog {
+.goal-dialog,
+.delete-dialog {
   width: calc(100% - 24px);
   max-width: 390px;
   max-height: calc(100vh - 24px);
@@ -336,7 +348,8 @@ input:focus-visible {
 }
 
 .entry-dialog::backdrop,
-.goal-dialog::backdrop {
+.goal-dialog::backdrop,
+.delete-dialog::backdrop {
   background: rgba(0, 0, 0, 0.68);
 }
 
@@ -450,6 +463,38 @@ input:focus-visible {
 
 .field-validation-error {
   color: var(--danger);
+}
+
+.data-actions,
+.data-upload {
+  display: grid;
+  gap: 10px;
+}
+
+.data-actions {
+  margin-top: 12px;
+}
+
+.file-input,
+.text-input {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0d121b;
+  color: var(--text);
+}
+
+.dialog-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 @media (max-width: 420px) {

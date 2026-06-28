@@ -20,7 +20,9 @@ public sealed class DatabaseStartupTests
         var builder = new SqliteConnectionStringBuilder(connectionString);
 
         Assert.Equal(Path.Combine(contentRoot, "App_Data", "weighttracker.db"), builder.DataSource);
-    }    [Fact]
+    }
+
+    [Fact]
     public async Task GetRoot_CreatesSqliteDirectoryAndSchema_WhenDatabasePathIsMissing()
     {
         var root = Path.Combine(
@@ -28,6 +30,11 @@ public sealed class DatabaseStartupTests
             "startup-db-tests",
             Guid.NewGuid().ToString("N"));
         var databasePath = Path.Combine(root, "nested", "weighttracker.db");
+        var dataProtectionKeysPath = Path.Combine(
+            Path.GetTempPath(),
+            "weighttracker-tests",
+            Guid.NewGuid().ToString("N"),
+            "DataProtectionKeys");
 
         try
         {
@@ -36,6 +43,7 @@ public sealed class DatabaseStartupTests
                 {
                     builder.ConfigureLogging(logging => logging.ClearProviders());
                     builder.UseSetting("ConnectionStrings:WeightTracker", $"Data Source={databasePath}");
+                    builder.UseSetting("DataProtection:KeysPath", dataProtectionKeysPath);
                 });
             var client = app.CreateClient();
 

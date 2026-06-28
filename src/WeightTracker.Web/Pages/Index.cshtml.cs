@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using WeightTracker.Web.Models;
@@ -20,6 +21,7 @@ public sealed record DashboardCalendarDay(
 public sealed class IndexModel(
     SettingsService settingsService,
     WeightEntryService entryService,
+    WeightDataService weightDataService,
     MetricsService metricsService,
     ILocalDateProvider localDateProvider) : PageModel
 {
@@ -34,6 +36,15 @@ public sealed class IndexModel(
 
     [BindProperty]
     public decimal? GoalWeight { get; set; }
+
+    [BindProperty]
+    public IFormFile? ImportFile { get; set; }
+
+    [BindProperty]
+    public string? DeleteAllConfirmation { get; set; }
+
+    [TempData]
+    public string? StatusMessage { get; set; }
 
     [BindProperty(SupportsGet = true, Name = "month")]
     public string? CalendarMonth { get; set; }
@@ -148,6 +159,60 @@ public sealed class IndexModel(
             settings.Theme,
             cancellationToken);
 
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnGetExportCsvAsync(CancellationToken cancellationToken)
+    {
+        var today = await localDateProvider.GetTodayAsync(cancellationToken);
+        var csv = await weightDataService.ExportCsvAsync(cancellationToken);
+        var fileName = $"weighttracker-weights-{today:yyyyMMdd}.csv";
+
+        return File(Encoding.UTF8.GetBytes(csv), "text/csv; charset=utf-8", fileName);
+    }
+
+    public async Task<IActionResult> OnPostImportCsvAsync(CancellationToken cancellationToken)
+    {
+        if (ImportFile is null || ImportFile.Length == 0)
+        {
+            ModelState.AddModelError(string.Empty, "Choose a CSV file to import.");
+            await LoadAsync(cancellationToken);
+            return Page();
+        }
+
+        using var reader = new StreamReader(ImportFile.OpenReadStream(), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        var csv = await reader.ReadToEndAsync(cancellationToken);
+        var result = await weightDataService.ImportCsvAsync(csv, cancellationToken);
+        if (!result.Success)
+        {
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error);
+            }
+
+            await LoadAsync(cancellationToken);
+            return Page();
+        }
+
+        StatusMessage = $"Imported {result.InsertedCount + result.UpdatedCount} entries.";
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostDeleteAllWeightsAsync(CancellationToken cancellationToken)
+    {
+        var result = await weightDataService.DeleteAllWeightsAsync(DeleteAllConfirmation, cancellationToken);
+        if (!result.Success)
+        {
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error);
+            }
+
+            await LoadAsync(cancellationToken);
+            return Page();
+        }
+
+        StatusMessage = $"Deleted {result.DeletedCount} entries.";
         return RedirectToPage();
     }
 

@@ -15,6 +15,7 @@ This roadmap tracks product and delivery work that is still useful after the ini
 - Dark, compact application styling.
 - Automated tests for services, persistence, startup, and dashboard behavior.
 - Scrollable dashboard deep insights with long-term trend and focused metrics.
+- CSV export/import and guarded delete-all tools for weight-entry data.
 
 ## Near-Term Work
 
@@ -56,17 +57,6 @@ Decide whether production startup should continue using `EnsureCreatedAsync` or 
 - Add initial migration files if choosing migrations.
 - Make startup initialization idempotent.
 - Keep test database setup simple and isolated.
-
-### CSV Backup, Export, And Import
-
-Add CSV export and import as a practical backup path.
-
-- Export weight entries with date, stored kilogram value, display value, display unit, and timestamps where available.
-- Export settings that fit naturally in CSV, including display unit, goal weight, week start, time zone, and theme.
-- Include enough metadata to identify the export format version and creation time.
-- Import entries by date, updating existing dates or reporting conflicts through a clear rule.
-- Import settings when present, while validating units, time zones, themes, and positive goal weights.
-- Treat CSV as a portable backup format, not a full-fidelity database dump.
 
 ## Later Work
 
