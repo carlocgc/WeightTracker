@@ -152,7 +152,7 @@ public sealed class DashboardPageTests
         Assert.True(response.StatusCode == HttpStatusCode.OK, html);
         Assert.Contains("aria-label=\"Goal\"", html);
         Assert.Contains("78.0 kg", html);
-        Assert.Contains("+4.1 kg", html);
+        Assert.Contains("+4.1 kg", WebUtility.HtmlDecode(html));
         Assert.Contains("aria-label=\"Edit goal\"", html);
         Assert.Contains("value=\"78.0\"", html);
         Assert.Contains("Clear goal", html);

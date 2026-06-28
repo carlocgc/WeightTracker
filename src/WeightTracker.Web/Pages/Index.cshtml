@@ -29,7 +29,7 @@
         <div>
             <p class="eyebrow">Goal</p>
             <strong class="goal-panel__value">@(Model.HasGoal ? Model.FormatWeight(Model.Summary.GoalWeightKg) : "No goal set")</strong>
-            <span>@Html.Raw(Model.FormatGoalPanelDetail())</span>
+            <span>@Model.FormatGoalPanelDetail()</span>
         </div>
         <button type="button" class="trophy-button" data-open-goal aria-label="@Model.GoalActionLabel">&#127942;</button>
     </section>
