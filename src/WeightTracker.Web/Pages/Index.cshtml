@@ -13,132 +13,138 @@
 }
 
 <div class="weight-app">
-    <header class="app-header">
-        <div>
-            <p class="eyebrow">WeightTracker</p>
-            <h1>Dashboard</h1>
-        </div>
-        <span class="app-header__date">@Model.Today.ToString("dd MMM")</span>
-    </header>
-
-    <section class="weight-hero" aria-label="Latest weight">
-        <div>
-            <p class="eyebrow">Latest weight</p>
-            <strong class="weight-hero__value">@Model.FormatWeight(Model.Summary.LatestWeightKg)</strong>
-        </div>
-        <button type="button" class="primary-action" data-open-entry>Add / Update</button>
-    </section>
-
-    <section class="goal-panel" aria-label="Goal">
-        <div>
-            <p class="eyebrow">Goal</p>
-            <strong class="goal-panel__value">@(Model.HasGoal ? Model.FormatWeight(Model.Summary.GoalWeightKg) : "No goal set")</strong>
-            <span>@Model.FormatGoalPanelDetail()</span>
-        </div>
-        <button type="button" class="trophy-button" data-open-goal aria-label="@Model.GoalActionLabel">&#127942;</button>
-    </section>
-
-    <section class="metric-strip" aria-label="Weight metrics">
-        <article>
-            <span>7-day avg</span>
-            <strong>@Model.FormatWeight(Model.Summary.SevenDayMovingAverageKg)</strong>
-        </article>
-        <article>
-            <span>Week delta</span>
-            <strong>@Model.FormatSignedWeight(Model.Summary.WeekOverWeekDeltaKg)</strong>
-        </article>
-        <article>
-            <span>@(Model.Summary.GoalWeightKg.HasValue ? "Goal gap" : "30-day")</span>
-            <strong>@Model.FormatGoalDistance()</strong>
-        </article>
-    </section>
-
-    <section class="trend-panel" aria-label="Weight trend">
-        <div class="section-heading trend-heading">
+    <div class="dashboard-summary">
+        <header class="app-header">
             <div>
-                <h2>Trend</h2>
-                <span data-trend-range-label>Last 6 months</span>
+                <p class="eyebrow">WeightTracker</p>
+                <h1>Dashboard</h1>
             </div>
-            <div class="trend-range-selector" aria-label="Trend time frame">
-                <button type="button" data-trend-range="1m" data-range-label="Last month" aria-pressed="false">1M</button>
-                <button type="button" data-trend-range="3m" data-range-label="Last 3 months" aria-pressed="false">3M</button>
-                <button type="button" data-trend-range="6m" data-range-label="Last 6 months" aria-pressed="true">6M</button>
-                <button type="button" data-trend-range="1y" data-range-label="Last year" aria-pressed="false">1Y</button>
-                <button type="button" data-trend-range="all" data-range-label="All entries" aria-pressed="false">All</button>
+            <span class="app-header__date">@Model.Today.ToString("dd MMM")</span>
+        </header>
+
+        <section class="weight-hero" aria-label="Latest weight">
+            <div>
+                <p class="eyebrow">Latest weight</p>
+                <strong class="weight-hero__value">@Model.FormatWeight(Model.Summary.LatestWeightKg)</strong>
             </div>
-        </div>
-        <div class="trend-chart-frame">
-            <canvas id="trendChart"></canvas>
-        </div>
-    </section>
+            <button type="button" class="primary-action" data-open-entry>Add / Update</button>
+        </section>
 
-    <section class="history-panel" aria-label="Recent history">
-        <div class="section-heading">
-            <h2>Recent history</h2>
-            <span>@Model.RecentHistory.Count entries</span>
-        </div>
-        @if (Model.RecentHistory.Count == 0)
-        {
-            <p class="empty-state">No weights recorded yet.</p>
-        }
-        else
-        {
-            <ol class="history-list">
-                @foreach (var row in Model.RecentHistory)
-                {
-                    <li>
-                        <span>@Model.FormatHistoryDate(row.EntryDate)</span>
-                        <strong>@Model.FormatWeight(row.WeightKg)</strong>
-                    </li>
-                }
-            </ol>
-        }
-    </section>
+        <section class="goal-panel" aria-label="Goal">
+            <div>
+                <p class="eyebrow">Goal</p>
+                <strong class="goal-panel__value">@(Model.HasGoal ? Model.FormatWeight(Model.Summary.GoalWeightKg) : "No goal set")</strong>
+                <span>@Model.FormatGoalPanelDetail()</span>
+            </div>
+            <button type="button" class="trophy-button" data-open-goal aria-label="@Model.GoalActionLabel">&#127942;</button>
+        </section>
+
+        <section class="metric-strip" aria-label="Weight metrics">
+            <article>
+                <span>7-day avg</span>
+                <strong>@Model.FormatWeight(Model.Summary.SevenDayMovingAverageKg)</strong>
+            </article>
+            <article>
+                <span>Week delta</span>
+                <strong>@Model.FormatSignedWeight(Model.Summary.WeekOverWeekDeltaKg)</strong>
+            </article>
+            <article>
+                <span>@(Model.Summary.GoalWeightKg.HasValue ? "Goal gap" : "30-day")</span>
+                <strong>@Model.FormatGoalDistance()</strong>
+            </article>
+        </section>
+    </div>
+
+    <div class="dashboard-primary">
+        <section class="trend-panel" aria-label="Weight trend">
+            <div class="section-heading trend-heading">
+                <div>
+                    <h2>Trend</h2>
+                    <span data-trend-range-label>Last 6 months</span>
+                </div>
+                <div class="trend-range-selector" aria-label="Trend time frame">
+                    <button type="button" data-trend-range="1m" data-range-label="Last month" aria-pressed="false">1M</button>
+                    <button type="button" data-trend-range="3m" data-range-label="Last 3 months" aria-pressed="false">3M</button>
+                    <button type="button" data-trend-range="6m" data-range-label="Last 6 months" aria-pressed="true">6M</button>
+                    <button type="button" data-trend-range="1y" data-range-label="Last year" aria-pressed="false">1Y</button>
+                    <button type="button" data-trend-range="all" data-range-label="All entries" aria-pressed="false">All</button>
+                </div>
+            </div>
+            <div class="trend-chart-frame">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <div class="dashboard-supporting">
+        <section class="history-panel" aria-label="Recent history">
+            <div class="section-heading">
+                <h2>Recent history</h2>
+                <span>@Model.RecentHistory.Count entries</span>
+            </div>
+            @if (Model.RecentHistory.Count == 0)
+            {
+                <p class="empty-state">No weights recorded yet.</p>
+            }
+            else
+            {
+                <ol class="history-list">
+                    @foreach (var row in Model.RecentHistory)
+                    {
+                        <li>
+                            <span>@Model.FormatHistoryDate(row.EntryDate)</span>
+                            <strong>@Model.FormatWeight(row.WeightKg)</strong>
+                        </li>
+                    }
+                </ol>
+            }
+        </section>
 
 
-    <section class="insights-panel" aria-label="Weight insights">
-        <div class="section-heading">
-            <h2>Insights</h2>
-            <span>All recorded weights</span>
-        </div>
-        <div class="insight-grid">
-            <article>
-                <span>Latest</span>
-                <strong>@Model.FormatWeight(Model.Summary.LatestWeightKg)</strong>
-            </article>
-            <article>
-                <span>High</span>
-                <strong>@Model.FormatWeight(Model.Summary.RangeHighKg)</strong>
-            </article>
-            <article>
-                <span>Low</span>
-                <strong>@Model.FormatWeight(Model.Summary.RangeLowKg)</strong>
-            </article>
-            <article>
-                <span>30-day</span>
-                <strong>@Model.FormatSignedWeight(Model.Summary.ThirtyDayChangeKg)</strong>
-            </article>
-            <article>
-                <span>90-day</span>
-                <strong>@Model.FormatSignedWeight(Model.Summary.NinetyDayChangeKg)</strong>
-            </article>
-            <article>
-                <span>Entry count</span>
-                <strong>@Model.EntryCount</strong>
-            </article>
-        </div>
-    </section>
-    <section class="data-panel" aria-label="Data management">
-        <div class="section-heading">
-            <h2>Data</h2>
-            <span>Weight entries only</span>
-        </div>
-        <div class="data-actions">
-            <a class="primary-action action-button" asp-page-handler="ExportCsv">Export CSV</a>
-            <button type="button" class="primary-action action-button" data-open-import>Import CSV</button>
-            <button type="button" class="secondary-action action-button" data-open-delete-all>Delete all</button>
-        </div>
-    </section>
+        <section class="insights-panel" aria-label="Weight insights">
+            <div class="section-heading">
+                <h2>Insights</h2>
+                <span>All recorded weights</span>
+            </div>
+            <div class="insight-grid">
+                <article>
+                    <span>Latest</span>
+                    <strong>@Model.FormatWeight(Model.Summary.LatestWeightKg)</strong>
+                </article>
+                <article>
+                    <span>High</span>
+                    <strong>@Model.FormatWeight(Model.Summary.RangeHighKg)</strong>
+                </article>
+                <article>
+                    <span>Low</span>
+                    <strong>@Model.FormatWeight(Model.Summary.RangeLowKg)</strong>
+                </article>
+                <article>
+                    <span>30-day</span>
+                    <strong>@Model.FormatSignedWeight(Model.Summary.ThirtyDayChangeKg)</strong>
+                </article>
+                <article>
+                    <span>90-day</span>
+                    <strong>@Model.FormatSignedWeight(Model.Summary.NinetyDayChangeKg)</strong>
+                </article>
+                <article>
+                    <span>Entry count</span>
+                    <strong>@Model.EntryCount</strong>
+                </article>
+            </div>
+        </section>
+        <section class="data-panel" aria-label="Data management">
+            <div class="section-heading">
+                <h2>Data</h2>
+                <span>Weight entries only</span>
+            </div>
+            <div class="data-actions">
+                <a class="primary-action action-button" asp-page-handler="ExportCsv">Export CSV</a>
+                <button type="button" class="primary-action action-button" data-open-import>Import CSV</button>
+                <button type="button" class="secondary-action action-button" data-open-delete-all>Delete all</button>
+            </div>
+        </section>
+    </div>
 </div>
 
 <dialog id="entryDialog" class="entry-dialog" role="dialog" aria-modal="true" aria-labelledby="entryDialogTitle">
