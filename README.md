@@ -5,10 +5,13 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/carlocgc/WeightTracker/actions/workflows/pr-build.yml"><img alt="PR Build" src="https://github.com/carlocgc/WeightTracker/actions/workflows/pr-build.yml/badge.svg?branch=development"></a>
+  <a href="https://github.com/carlocgc/WeightTracker/actions/workflows/release-docker.yml"><img alt="Release Docker Image" src="https://github.com/carlocgc/WeightTracker/actions/workflows/release-docker.yml/badge.svg"></a>
+  <a href="https://github.com/carlocgc/WeightTracker/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/carlocgc/WeightTracker?sort=semver&label=latest"></a>
+  <a href="https://hub.docker.com/r/carlocgc/weighttracker"><img alt="Docker Hub" src="https://img.shields.io/docker/pulls/carlocgc/weighttracker?logo=docker&label=Docker%20Hub"></a>
   <a href="https://dotnet.microsoft.com/"><img alt=".NET 10.0" src="https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet"></a>
   <a href="https://learn.microsoft.com/aspnet/core/razor-pages/"><img alt="ASP.NET Core Razor Pages" src="https://img.shields.io/badge/ASP.NET%20Core-Razor%20Pages-512BD4"></a>
   <a href="https://sqlite.org/"><img alt="SQLite persistence" src="https://img.shields.io/badge/SQLite-persistence-003B57?logo=sqlite"></a>
-  <a href="https://www.docker.com/"><img alt="Docker ready" src="https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white"></a>
 </p>
 
 <p align="center">
