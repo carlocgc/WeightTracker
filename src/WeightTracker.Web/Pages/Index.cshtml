@@ -60,12 +60,12 @@
             <div class="section-heading trend-heading">
                 <div>
                     <h2>Trend</h2>
-                    <span data-trend-range-label>Last 6 months</span>
+                    <span data-trend-range-label>Last month</span>
                 </div>
                 <div class="trend-range-selector" aria-label="Trend time frame">
-                    <button type="button" data-trend-range="1m" data-range-label="Last month" aria-pressed="false">1M</button>
+                    <button type="button" data-trend-range="1m" data-range-label="Last month" aria-pressed="true">1M</button>
                     <button type="button" data-trend-range="3m" data-range-label="Last 3 months" aria-pressed="false">3M</button>
-                    <button type="button" data-trend-range="6m" data-range-label="Last 6 months" aria-pressed="true">6M</button>
+                    <button type="button" data-trend-range="6m" data-range-label="Last 6 months" aria-pressed="false">6M</button>
                     <button type="button" data-trend-range="1y" data-range-label="Last year" aria-pressed="false">1Y</button>
                     <button type="button" data-trend-range="all" data-range-label="All entries" aria-pressed="false">All</button>
                 </div>
@@ -540,7 +540,7 @@
 
             return new Chart(canvas, {
                 type: 'line',
-                data: buildTrendData(dailyPoints, movingPoints, goalWeight, '6m'),
+                data: buildTrendData(dailyPoints, movingPoints, goalWeight, '1m'),
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,

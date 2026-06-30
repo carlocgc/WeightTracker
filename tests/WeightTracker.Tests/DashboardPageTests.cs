@@ -98,7 +98,8 @@ public sealed class DashboardPageTests
         Assert.Contains("data-trend-range=\"6m\"", html);
         Assert.Contains("data-trend-range=\"1y\"", html);
         Assert.Contains("data-trend-range=\"all\"", html);
-        Assert.Contains("aria-pressed=\"true\">6M</button>", html);
+        Assert.Contains("data-trend-range-label>Last month</span>", html);
+        Assert.Contains("aria-pressed=\"true\">1M</button>", html);
         Assert.Contains("\"date\":\"2025-11-01\"", html);
         Assert.Contains("Latest", html);
         Assert.Contains("82.1 kg", html);
