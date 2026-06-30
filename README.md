@@ -1,38 +1,42 @@
-# WeightTracker
+<h1 align="center">WeightTracker</h1>
 
-WeightTracker is a mobile-first web app for manually recording daily body weight and analyzing weight trends.
+<p align="center">
+  A self-hosted dashboard for recording daily body weight and reviewing weight trends.
+</p>
 
-## Current Status
+<p align="center">
+  <a href="https://github.com/carlocgc/WeightTracker/actions/workflows/pr-build.yml"><img alt="PR Build" src="https://github.com/carlocgc/WeightTracker/actions/workflows/pr-build.yml/badge.svg?branch=development"></a>
+  <a href="https://github.com/carlocgc/WeightTracker/actions/workflows/release-docker.yml"><img alt="Release Docker Image" src="https://github.com/carlocgc/WeightTracker/actions/workflows/release-docker.yml/badge.svg"></a>
+  <a href="https://github.com/carlocgc/WeightTracker/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/carlocgc/WeightTracker?sort=semver&label=latest"></a>
+  <a href="https://hub.docker.com/r/carlocgc/weighttracker"><img alt="Docker Hub" src="https://img.shields.io/docker/pulls/carlocgc/weighttracker?logo=docker&label=Docker%20Hub"></a>
+  <a href="https://dotnet.microsoft.com/"><img alt=".NET 10.0" src="https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet"></a>
+  <a href="https://learn.microsoft.com/aspnet/core/razor-pages/"><img alt="ASP.NET Core Razor Pages" src="https://img.shields.io/badge/ASP.NET%20Core-Razor%20Pages-512BD4"></a>
+  <a href="https://sqlite.org/"><img alt="SQLite persistence" src="https://img.shields.io/badge/SQLite-persistence-003B57?logo=sqlite"></a>
+</p>
 
-The app currently includes:
+<p align="center">
+  <img alt="WeightTracker desktop dashboard" src="docs/assets/dashboard-desktop.png">
+</p>
 
-- ASP.NET Core Razor Pages.
-- SQLite persistence through Entity Framework Core.
-- A mobile-first dashboard with calendar-based weight entry.
-- One entry per local calendar date.
-- Time-zone-aware entry dates.
-- Saved settings for unit, goal, week start, time zone, and theme.
-- Trend metrics and dashboard chart data.
-- CSV export/import and guarded delete-all tools for weight-entry data.
-- Service, persistence, startup, and dashboard tests.
+> **Warning**
+> Do not expose WeightTracker directly to the internet. The app has no authenticated users or authorization boundary, and a dedicated security review has not been completed. Run it only locally, on trusted networks, or behind access-controlled infrastructure.
 
-Remaining product and deployment work is tracked in:
+## Features
 
-- `docs/ROADMAP.md`
+- Daily weight entry with one record per calendar date.
+- Goal tracking and trend charts.
+- Recent history and aggregate metrics.
+- CSV export/import for weight entries.
+- Guarded delete-all flow for weight data.
+- SQLite persistence and Docker support.
 
-## Backups And Migration
+## Data
 
-Use the dashboard Data section to export, import, or clear weight-entry data.
+CSV export downloads recorded weights as `entry_date`, `weight_kg`, and `note` columns. CSV import accepts the same columns, validates the full file before writing, and updates existing entries by `entry_date`.
 
-CSV export downloads all recorded weights as `entry_date`, `weight_kg`, and `note` columns. Weights are always exported in stored kilograms, independent of the current display unit.
-
-CSV import accepts the same columns, validates the full file before writing anything, and updates existing entries by `entry_date`. Settings such as display unit, goal, week start, time zone, and theme are not imported or exported.
-
-Delete all removes only weight entries. It leaves settings unchanged and requires a two-step confirmation with exact `DELETE`.
+Delete all removes weight entries only and requires exact `DELETE` confirmation.
 
 ## Development
-
-Restore dependencies, build the solution, and run the test suite with:
 
 ```powershell
 dotnet restore WeightTracker.sln
@@ -42,19 +46,17 @@ dotnet test WeightTracker.sln
 
 ## Docker
 
-Build and run the app locally with Docker Compose:
-
 ```powershell
 docker compose up --build
 ```
 
-The app is published locally on:
+The app is published locally at:
 
 ```text
 http://localhost:18080
 ```
 
-The container listens on internal HTTP port `8080` and stores SQLite data at `/data/weighttracker.db`. ASP.NET Data Protection keys are stored beside the database at `/data/DataProtectionKeys` by default, so antiforgery tokens survive container recreation. The compose file mounts a named volume at `/data` so local app data survives container recreation. Set `DataProtection__KeysPath` to override the key directory.
+The container listens on internal HTTP port `8080` and stores SQLite data at `/data/weighttracker.db`. The compose file mounts a named volume at `/data` so local app data survives container recreation.
 
 To run the published Docker Hub image directly:
 
@@ -68,7 +70,7 @@ Release tags must use `vX.Y.Z` format and point to a commit contained in `master
 
 Pushing a matching tag creates a GitHub Release, attaches a self-contained `linux-x64` app zip, publishes `docker.io/carlocgc/weighttracker:vX.Y.Z`, and updates `docker.io/carlocgc/weighttracker:latest`.
 
-The release workflow expects these repository secrets:
+Required release secrets:
 
 ```text
 DOCKERHUB_USERNAME
@@ -78,4 +80,4 @@ DOCKERHUB_TOKEN
 ## Branches
 
 - `master`: stable branch.
-- `development`: integration branch for feature work.
+- `development`: integration branch.

@@ -37,7 +37,10 @@ public class HomePageTests(WebApplicationFactory<Program> factory) : IClassFixtu
         var client = app.CreateClient();
 
         var response = await client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("href=\"/css/site.css?v=", html);
+        Assert.DoesNotContain("WeightTracker.Web.styles.css", html);
     }
 }
