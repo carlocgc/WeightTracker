@@ -1,6 +1,22 @@
-# WeightTracker
+<h1 align="center">WeightTracker</h1>
 
-WeightTracker is a mobile-first web app for manually recording daily body weight and analyzing weight trends.
+<p align="center">
+  A mobile-first web app for manually recording daily body weight and analyzing weight trends.
+</p>
+
+<p align="center">
+  <a href="https://dotnet.microsoft.com/"><img alt=".NET 10.0" src="https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet"></a>
+  <a href="https://learn.microsoft.com/aspnet/core/razor-pages/"><img alt="ASP.NET Core Razor Pages" src="https://img.shields.io/badge/ASP.NET%20Core-Razor%20Pages-512BD4"></a>
+  <a href="https://sqlite.org/"><img alt="SQLite persistence" src="https://img.shields.io/badge/SQLite-persistence-003B57?logo=sqlite"></a>
+  <a href="https://www.docker.com/"><img alt="Docker ready" src="https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white"></a>
+</p>
+
+<p align="center">
+  <img alt="WeightTracker desktop dashboard" src="docs/assets/dashboard-desktop.png">
+</p>
+
+> **Warning**
+> WeightTracker should not be exposed directly to the internet. The app currently has no authenticated users or authorization boundary, and a dedicated security review has not been completed. Run it only on trusted local networks or behind infrastructure that provides appropriate access control.
 
 ## Current Status
 
