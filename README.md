@@ -1,7 +1,7 @@
 <h1 align="center">WeightTracker</h1>
 
 <p align="center">
-  A mobile-first web app for manually recording daily body weight and analyzing weight trends.
+  A self-hosted dashboard for recording daily body weight and reviewing weight trends.
 </p>
 
 <p align="center">
@@ -16,39 +16,24 @@
 </p>
 
 > **Warning**
-> WeightTracker should not be exposed directly to the internet. The app currently has no authenticated users or authorization boundary, and a dedicated security review has not been completed. Run it only on trusted local networks or behind infrastructure that provides appropriate access control.
+> Do not expose WeightTracker directly to the internet. The app has no authenticated users or authorization boundary, and a dedicated security review has not been completed. Run it only locally, on trusted networks, or behind access-controlled infrastructure.
 
-## Current Status
+## Features
 
-The app currently includes:
+- Daily weight entry with one record per calendar date.
+- Goal tracking and trend charts.
+- Recent history and aggregate metrics.
+- CSV export/import for weight entries.
+- Guarded delete-all flow for weight data.
+- SQLite persistence and Docker support.
 
-- ASP.NET Core Razor Pages.
-- SQLite persistence through Entity Framework Core.
-- A mobile-first dashboard with calendar-based weight entry.
-- One entry per local calendar date.
-- Time-zone-aware entry dates.
-- Saved settings for unit, goal, week start, time zone, and theme.
-- Trend metrics and dashboard chart data.
-- CSV export/import and guarded delete-all tools for weight-entry data.
-- Service, persistence, startup, and dashboard tests.
+## Data
 
-Remaining product and deployment work is tracked in:
+CSV export downloads recorded weights as `entry_date`, `weight_kg`, and `note` columns. CSV import accepts the same columns, validates the full file before writing, and updates existing entries by `entry_date`.
 
-- `docs/ROADMAP.md`
-
-## Backups And Migration
-
-Use the dashboard Data section to export, import, or clear weight-entry data.
-
-CSV export downloads all recorded weights as `entry_date`, `weight_kg`, and `note` columns. Weights are always exported in stored kilograms, independent of the current display unit.
-
-CSV import accepts the same columns, validates the full file before writing anything, and updates existing entries by `entry_date`. Settings such as display unit, goal, week start, time zone, and theme are not imported or exported.
-
-Delete all removes only weight entries. It leaves settings unchanged and requires a two-step confirmation with exact `DELETE`.
+Delete all removes weight entries only and requires exact `DELETE` confirmation.
 
 ## Development
-
-Restore dependencies, build the solution, and run the test suite with:
 
 ```powershell
 dotnet restore WeightTracker.sln
@@ -58,19 +43,17 @@ dotnet test WeightTracker.sln
 
 ## Docker
 
-Build and run the app locally with Docker Compose:
-
 ```powershell
 docker compose up --build
 ```
 
-The app is published locally on:
+The app is published locally at:
 
 ```text
 http://localhost:18080
 ```
 
-The container listens on internal HTTP port `8080` and stores SQLite data at `/data/weighttracker.db`. ASP.NET Data Protection keys are stored beside the database at `/data/DataProtectionKeys` by default, so antiforgery tokens survive container recreation. The compose file mounts a named volume at `/data` so local app data survives container recreation. Set `DataProtection__KeysPath` to override the key directory.
+The container listens on internal HTTP port `8080` and stores SQLite data at `/data/weighttracker.db`. The compose file mounts a named volume at `/data` so local app data survives container recreation.
 
 To run the published Docker Hub image directly:
 
@@ -84,7 +67,7 @@ Release tags must use `vX.Y.Z` format and point to a commit contained in `master
 
 Pushing a matching tag creates a GitHub Release, attaches a self-contained `linux-x64` app zip, publishes `docker.io/carlocgc/weighttracker:vX.Y.Z`, and updates `docker.io/carlocgc/weighttracker:latest`.
 
-The release workflow expects these repository secrets:
+Required release secrets:
 
 ```text
 DOCKERHUB_USERNAME
@@ -94,4 +77,4 @@ DOCKERHUB_TOKEN
 ## Branches
 
 - `master`: stable branch.
-- `development`: integration branch for feature work.
+- `development`: integration branch.
