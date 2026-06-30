@@ -86,6 +86,7 @@ input:focus-visible {
 .weight-app {
   width: 100%;
   max-width: 430px;
+  margin-inline: auto;
   display: grid;
   gap: 12px;
   padding: 16px;
@@ -93,6 +94,14 @@ input:focus-visible {
   border-radius: 8px;
   background: var(--surface);
   box-shadow: 0 18px 55px rgba(0, 0, 0, 0.35);
+}
+
+.dashboard-summary,
+.dashboard-primary,
+.dashboard-supporting {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
 }
 
 .app-header,
@@ -204,6 +213,13 @@ input:focus-visible {
   box-shadow: 0 8px 24px rgba(40, 240, 212, 0.18);
 }
 
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
 .secondary-action {
   min-height: 40px;
   padding: 0 16px;
@@ -294,14 +310,42 @@ input:focus-visible {
   padding: 14px;
 }
 
+.trend-heading {
+  align-items: flex-start;
+}
+
+.trend-range-selector {
+  display: inline-grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #0d121b;
+}
+
+.trend-range-selector button {
+  min-width: 32px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.trend-range-selector button[aria-pressed="true"] {
+  background: var(--accent);
+  color: #06110f;
+}
+
 .trend-chart-frame {
   position: relative;
   height: 220px;
   overflow: hidden;
-}
-
-.trend-chart-frame--long {
-  height: 300px;
 }
 
 .trend-panel canvas {
@@ -335,6 +379,7 @@ input:focus-visible {
 
 .entry-dialog,
 .goal-dialog,
+.import-dialog,
 .delete-dialog {
   width: calc(100% - 24px);
   max-width: 390px;
@@ -349,6 +394,7 @@ input:focus-visible {
 
 .entry-dialog::backdrop,
 .goal-dialog::backdrop,
+.import-dialog::backdrop,
 .delete-dialog::backdrop {
   background: rgba(0, 0, 0, 0.68);
 }
@@ -495,6 +541,101 @@ input:focus-visible {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    padding: 32px 24px;
+  }
+
+  .validation-summary,
+  .status-message,
+  .weight-app {
+    max-width: 860px;
+  }
+
+  .weight-app {
+    padding: 20px;
+    gap: 16px;
+  }
+
+  .dashboard-summary,
+  .dashboard-primary,
+  .dashboard-supporting {
+    gap: 16px;
+  }
+
+  .insight-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .data-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .primary-action {
+    width: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    align-items: stretch;
+    padding: 36px 28px;
+  }
+
+  .validation-summary,
+  .status-message,
+  .weight-app {
+    max-width: none;
+  }
+
+  .weight-app {
+    grid-template-columns: minmax(280px, 0.85fr) minmax(0, 2.15fr);
+    align-items: start;
+    width: 100%;
+  }
+
+  .dashboard-summary {
+    grid-column: 1;
+    align-self: start;
+  }
+
+  .dashboard-primary {
+    grid-column: 2;
+    min-height: 100%;
+  }
+
+  .dashboard-primary .trend-panel {
+    min-height: 100%;
+  }
+
+  .dashboard-supporting {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.35fr) minmax(240px, 0.75fr);
+    align-items: start;
+  }
+
+  .trend-chart-frame {
+    height: 320px;
+    margin-top: 10px;
+  }
+
+  .metric-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .data-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1280px) {
+  .validation-summary,
+  .status-message,
+  .weight-app {
+    max-width: 1240px;
+  }
 }
 
 @media (max-width: 420px) {

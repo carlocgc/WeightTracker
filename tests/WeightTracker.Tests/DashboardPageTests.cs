@@ -34,6 +34,12 @@ public sealed class DashboardPageTests
 
         Assert.True(response.StatusCode == HttpStatusCode.OK, html);
         Assert.Contains("class=\"weight-app\"", html);
+        Assert.Contains("class=\"dashboard-summary\"", html);
+        Assert.Contains("class=\"dashboard-primary\"", html);
+        Assert.Contains("class=\"dashboard-supporting\"", html);
+        Assert.Single(Regex.Matches(html, "class=\"dashboard-summary\""));
+        Assert.Single(Regex.Matches(html, "class=\"dashboard-primary\""));
+        Assert.Single(Regex.Matches(html, "class=\"dashboard-supporting\""));
         Assert.Contains("Latest weight", html);
         Assert.Contains("82.1 kg", html);
         Assert.Contains("Recent history", html);
@@ -84,9 +90,16 @@ public sealed class DashboardPageTests
         var html = await response.Content.ReadAsStringAsync();
 
         Assert.True(response.StatusCode == HttpStatusCode.OK, html);
-        Assert.Contains("Long-term trend", html);
+        Assert.DoesNotContain("Long-term trend", html);
         Assert.Contains("Insights", html);
-        Assert.Contains("id=\"longRangeTrendChart\"", html);
+        Assert.DoesNotContain("id=\"longRangeTrendChart\"", html);
+        Assert.Contains("data-trend-range=\"1m\"", html);
+        Assert.Contains("data-trend-range=\"3m\"", html);
+        Assert.Contains("data-trend-range=\"6m\"", html);
+        Assert.Contains("data-trend-range=\"1y\"", html);
+        Assert.Contains("data-trend-range=\"all\"", html);
+        Assert.Contains("data-trend-range-label>Last month</span>", html);
+        Assert.Contains("aria-pressed=\"true\">1M</button>", html);
         Assert.Contains("\"date\":\"2025-11-01\"", html);
         Assert.Contains("Latest", html);
         Assert.Contains("82.1 kg", html);
@@ -98,7 +111,6 @@ public sealed class DashboardPageTests
         Assert.Contains("Entry count", html);
         Assert.Contains(">4</strong>", html);
         Assert.DoesNotContain("full-history-list", html);
-        Assert.DoesNotContain("All entries", html);
     }
 
     [Fact]
@@ -112,9 +124,9 @@ public sealed class DashboardPageTests
         var html = await response.Content.ReadAsStringAsync();
 
         Assert.True(response.StatusCode == HttpStatusCode.OK, html);
-        Assert.Contains("Long-term trend", html);
+        Assert.DoesNotContain("Long-term trend", html);
         Assert.Contains("Insights", html);
-        Assert.Contains("id=\"longRangeTrendChart\"", html);
+        Assert.DoesNotContain("id=\"longRangeTrendChart\"", html);
         Assert.Contains("Entry count", html);
         Assert.Contains(">0</strong>", html);
         Assert.Contains("No weights recorded yet.", html);
@@ -324,11 +336,15 @@ public sealed class DashboardPageTests
 
         Assert.True(response.StatusCode == HttpStatusCode.OK, html);
         Assert.Contains("aria-label=\"Data management\"", html);
-        Assert.Contains("Export CSV", html);
+        Assert.Contains("href=\"/?handler=ExportCsv\"", html);
+        Assert.Contains("data-open-import", html);
+        Assert.Contains("id=\"importCsvDialog\"", html);
         Assert.Contains("name=\"ImportFile\"", html);
         Assert.Contains("Delete all", html);
         Assert.Contains("id=\"deleteAllWarningDialog\"", html);
         Assert.Contains("id=\"deleteAllConfirmDialog\"", html);
+        Assert.DoesNotContain("class=\"data-upload\"", html);
+        Assert.DoesNotContain("for=\"importFile\">Import CSV</label>", html);
     }
 
     [Fact]
@@ -504,6 +520,7 @@ public sealed class DashboardPageTests
 
         return builder.ToString();
     }
+
     private sealed class DashboardTestApp : WebApplicationFactory<Program>
     {
         private static readonly DateTime DefaultUtcNow = new(2026, 6, 26, 9, 0, 0, DateTimeKind.Utc);

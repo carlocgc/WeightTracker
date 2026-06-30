@@ -13,136 +13,138 @@
 }
 
 <div class="weight-app">
-    <header class="app-header">
-        <div>
-            <p class="eyebrow">WeightTracker</p>
-            <h1>Dashboard</h1>
-        </div>
-        <span class="app-header__date">@Model.Today.ToString("dd MMM")</span>
-    </header>
+    <div class="dashboard-summary">
+        <header class="app-header">
+            <div>
+                <p class="eyebrow">WeightTracker</p>
+                <h1>Dashboard</h1>
+            </div>
+            <span class="app-header__date">@Model.Today.ToString("dd MMM")</span>
+        </header>
 
-    <section class="weight-hero" aria-label="Latest weight">
-        <div>
-            <p class="eyebrow">Latest weight</p>
-            <strong class="weight-hero__value">@Model.FormatWeight(Model.Summary.LatestWeightKg)</strong>
-        </div>
-        <button type="button" class="primary-action" data-open-entry>Add / Update</button>
-    </section>
+        <section class="weight-hero" aria-label="Latest weight">
+            <div>
+                <p class="eyebrow">Latest weight</p>
+                <strong class="weight-hero__value">@Model.FormatWeight(Model.Summary.LatestWeightKg)</strong>
+            </div>
+            <button type="button" class="primary-action" data-open-entry>Add / Update</button>
+        </section>
 
-    <section class="goal-panel" aria-label="Goal">
-        <div>
-            <p class="eyebrow">Goal</p>
-            <strong class="goal-panel__value">@(Model.HasGoal ? Model.FormatWeight(Model.Summary.GoalWeightKg) : "No goal set")</strong>
-            <span>@Model.FormatGoalPanelDetail()</span>
-        </div>
-        <button type="button" class="trophy-button" data-open-goal aria-label="@Model.GoalActionLabel">&#127942;</button>
-    </section>
+        <section class="goal-panel" aria-label="Goal">
+            <div>
+                <p class="eyebrow">Goal</p>
+                <strong class="goal-panel__value">@(Model.HasGoal ? Model.FormatWeight(Model.Summary.GoalWeightKg) : "No goal set")</strong>
+                <span>@Model.FormatGoalPanelDetail()</span>
+            </div>
+            <button type="button" class="trophy-button" data-open-goal aria-label="@Model.GoalActionLabel">&#127942;</button>
+        </section>
 
-    <section class="metric-strip" aria-label="Weight metrics">
-        <article>
-            <span>7-day avg</span>
-            <strong>@Model.FormatWeight(Model.Summary.SevenDayMovingAverageKg)</strong>
-        </article>
-        <article>
-            <span>Week delta</span>
-            <strong>@Model.FormatSignedWeight(Model.Summary.WeekOverWeekDeltaKg)</strong>
-        </article>
-        <article>
-            <span>@(Model.Summary.GoalWeightKg.HasValue ? "Goal gap" : "30-day")</span>
-            <strong>@Model.FormatGoalDistance()</strong>
-        </article>
-    </section>
-
-    <section class="trend-panel" aria-label="Weight trend">
-        <div class="section-heading">
-            <h2>Trend</h2>
-            <span>Last 6 months</span>
-        </div>
-        <div class="trend-chart-frame">
-            <canvas id="trendChart"></canvas>
-        </div>
-    </section>
-
-    <section class="history-panel" aria-label="Recent history">
-        <div class="section-heading">
-            <h2>Recent history</h2>
-            <span>@Model.RecentHistory.Count entries</span>
-        </div>
-        @if (Model.RecentHistory.Count == 0)
-        {
-            <p class="empty-state">No weights recorded yet.</p>
-        }
-        else
-        {
-            <ol class="history-list">
-                @foreach (var row in Model.RecentHistory)
-                {
-                    <li>
-                        <span>@Model.FormatHistoryDate(row.EntryDate)</span>
-                        <strong>@Model.FormatWeight(row.WeightKg)</strong>
-                    </li>
-                }
-            </ol>
-        }
-    </section>
-
-    <section class="trend-panel trend-panel--long" aria-label="Long-term trend">
-        <div class="section-heading">
-            <h2>Long-term trend</h2>
-            <span>@Model.EntryCount entries</span>
-        </div>
-        <div class="trend-chart-frame trend-chart-frame--long">
-            <canvas id="longRangeTrendChart"></canvas>
-        </div>
-    </section>
-
-    <section class="insights-panel" aria-label="Weight insights">
-        <div class="section-heading">
-            <h2>Insights</h2>
-            <span>All recorded weights</span>
-        </div>
-        <div class="insight-grid">
+        <section class="metric-strip" aria-label="Weight metrics">
             <article>
-                <span>Latest</span>
-                <strong>@Model.FormatWeight(Model.Summary.LatestWeightKg)</strong>
+                <span>7-day avg</span>
+                <strong>@Model.FormatWeight(Model.Summary.SevenDayMovingAverageKg)</strong>
             </article>
             <article>
-                <span>High</span>
-                <strong>@Model.FormatWeight(Model.Summary.RangeHighKg)</strong>
+                <span>Week delta</span>
+                <strong>@Model.FormatSignedWeight(Model.Summary.WeekOverWeekDeltaKg)</strong>
             </article>
             <article>
-                <span>Low</span>
-                <strong>@Model.FormatWeight(Model.Summary.RangeLowKg)</strong>
+                <span>@(Model.Summary.GoalWeightKg.HasValue ? "Goal gap" : "30-day")</span>
+                <strong>@Model.FormatGoalDistance()</strong>
             </article>
-            <article>
-                <span>30-day</span>
-                <strong>@Model.FormatSignedWeight(Model.Summary.ThirtyDayChangeKg)</strong>
-            </article>
-            <article>
-                <span>90-day</span>
-                <strong>@Model.FormatSignedWeight(Model.Summary.NinetyDayChangeKg)</strong>
-            </article>
-            <article>
-                <span>Entry count</span>
-                <strong>@Model.EntryCount</strong>
-            </article>
-        </div>
-    </section>
-    <section class="data-panel" aria-label="Data management">
-        <div class="section-heading">
-            <h2>Data</h2>
-            <span>Weight entries only</span>
-        </div>
-        <div class="data-actions">
-            <a class="primary-action" asp-page-handler="ExportCsv">Export CSV</a>
-            <form method="post" enctype="multipart/form-data" asp-page-handler="ImportCsv" class="data-upload">
-                <label class="weight-input-label" for="importFile">Import CSV</label>
-                <input id="importFile" class="file-input" type="file" name="ImportFile" accept=".csv,text/csv" />
-                <button type="submit" class="secondary-action secondary-action--neutral">Import CSV</button>
-            </form>
-            <button type="button" class="secondary-action" data-open-delete-all>Delete all</button>
-        </div>
-    </section>
+        </section>
+    </div>
+
+    <div class="dashboard-primary">
+        <section class="trend-panel" aria-label="Weight trend">
+            <div class="section-heading trend-heading">
+                <div>
+                    <h2>Trend</h2>
+                    <span data-trend-range-label>Last month</span>
+                </div>
+                <div class="trend-range-selector" aria-label="Trend time frame">
+                    <button type="button" data-trend-range="1m" data-range-label="Last month" aria-pressed="true">1M</button>
+                    <button type="button" data-trend-range="3m" data-range-label="Last 3 months" aria-pressed="false">3M</button>
+                    <button type="button" data-trend-range="6m" data-range-label="Last 6 months" aria-pressed="false">6M</button>
+                    <button type="button" data-trend-range="1y" data-range-label="Last year" aria-pressed="false">1Y</button>
+                    <button type="button" data-trend-range="all" data-range-label="All entries" aria-pressed="false">All</button>
+                </div>
+            </div>
+            <div class="trend-chart-frame">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <div class="dashboard-supporting">
+        <section class="history-panel" aria-label="Recent history">
+            <div class="section-heading">
+                <h2>Recent history</h2>
+                <span>@Model.RecentHistory.Count entries</span>
+            </div>
+            @if (Model.RecentHistory.Count == 0)
+            {
+                <p class="empty-state">No weights recorded yet.</p>
+            }
+            else
+            {
+                <ol class="history-list">
+                    @foreach (var row in Model.RecentHistory)
+                    {
+                        <li>
+                            <span>@Model.FormatHistoryDate(row.EntryDate)</span>
+                            <strong>@Model.FormatWeight(row.WeightKg)</strong>
+                        </li>
+                    }
+                </ol>
+            }
+        </section>
+
+
+        <section class="insights-panel" aria-label="Weight insights">
+            <div class="section-heading">
+                <h2>Insights</h2>
+                <span>All recorded weights</span>
+            </div>
+            <div class="insight-grid">
+                <article>
+                    <span>Latest</span>
+                    <strong>@Model.FormatWeight(Model.Summary.LatestWeightKg)</strong>
+                </article>
+                <article>
+                    <span>High</span>
+                    <strong>@Model.FormatWeight(Model.Summary.RangeHighKg)</strong>
+                </article>
+                <article>
+                    <span>Low</span>
+                    <strong>@Model.FormatWeight(Model.Summary.RangeLowKg)</strong>
+                </article>
+                <article>
+                    <span>30-day</span>
+                    <strong>@Model.FormatSignedWeight(Model.Summary.ThirtyDayChangeKg)</strong>
+                </article>
+                <article>
+                    <span>90-day</span>
+                    <strong>@Model.FormatSignedWeight(Model.Summary.NinetyDayChangeKg)</strong>
+                </article>
+                <article>
+                    <span>Entry count</span>
+                    <strong>@Model.EntryCount</strong>
+                </article>
+            </div>
+        </section>
+        <section class="data-panel" aria-label="Data management">
+            <div class="section-heading">
+                <h2>Data</h2>
+                <span>Weight entries only</span>
+            </div>
+            <div class="data-actions">
+                <a class="primary-action action-button" asp-page-handler="ExportCsv">Export CSV</a>
+                <button type="button" class="primary-action action-button" data-open-import>Import CSV</button>
+                <button type="button" class="secondary-action action-button" data-open-delete-all>Delete all</button>
+            </div>
+        </section>
+    </div>
 </div>
 
 <dialog id="entryDialog" class="entry-dialog" role="dialog" aria-modal="true" aria-labelledby="entryDialogTitle">
@@ -260,6 +262,24 @@
     </form>
 </dialog>
 
+<dialog id="importCsvDialog" class="import-dialog" role="dialog" aria-modal="true" aria-labelledby="importCsvDialogTitle">
+    <form method="post" enctype="multipart/form-data" asp-page-handler="ImportCsv" class="entry-dialog__form">
+        <div class="entry-dialog__header">
+            <div>
+                <p class="eyebrow">Import</p>
+                <h2 id="importCsvDialogTitle">Import CSV</h2>
+            </div>
+            <button type="button" class="icon-button" data-close-import aria-label="Close">x</button>
+        </div>
+        <label class="weight-input-label" for="importFile">CSV file</label>
+        <input id="importFile" class="file-input" type="file" name="ImportFile" accept=".csv,text/csv" />
+        <div class="entry-dialog__actions">
+            <button type="submit" class="primary-action">Import CSV</button>
+            <button type="button" class="secondary-action secondary-action--neutral" data-close-import>Cancel</button>
+        </div>
+    </form>
+</dialog>
+
 <dialog id="deleteAllWarningDialog" class="delete-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteAllWarningTitle">
     <div class="entry-dialog__form">
         <div class="entry-dialog__header">
@@ -335,6 +355,7 @@
         const selectedEntryDate = document.getElementById('selectedEntryDate');
         const deleteButton = document.querySelector('[data-delete-entry]');
         const calendarDays = Array.from(document.querySelectorAll('[data-calendar-day]'));
+        const importDialog = document.getElementById('importCsvDialog');
         const deleteAllWarningDialog = document.getElementById('deleteAllWarningDialog');
         const deleteAllConfirmDialog = document.getElementById('deleteAllConfirmDialog');
         const deleteAllConfirmInput = document.querySelector('[data-delete-all-confirm-input]');
@@ -421,6 +442,14 @@
             }
         }
 
+        document.querySelectorAll('[data-open-import]').forEach((button) => {
+            button.addEventListener('click', () => showDialog(importDialog));
+        });
+
+        document.querySelectorAll('[data-close-import]').forEach((button) => {
+            button.addEventListener('click', () => closeDialog(importDialog));
+        });
+
         document.querySelectorAll('[data-open-delete-all]').forEach((button) => {
             button.addEventListener('click', () => showDialog(deleteAllWarningDialog));
         });
@@ -460,43 +489,93 @@
             }
         }
 
-        function renderTrendChart(canvasId, dailyPoints, movingPoints, goalWeight, maxTicksLimit) {
-            const labels = dailyPoints.map(point => point.date);
-            const canvas = document.getElementById(canvasId);
-            if (!canvas || !window.Chart) {
-                return;
+        function parseDateOnly(value) {
+            const parts = value.split('-').map(Number);
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+        }
+
+        function addMonths(date, months) {
+            return new Date(date.getFullYear(), date.getMonth() + months, date.getDate());
+        }
+
+        function rangeStartDate(range, endDate) {
+            if (range === 'all') {
+                return null;
             }
 
-            new Chart(canvas, {
+            const monthsByRange = { '1m': -1, '3m': -3, '6m': -6, '1y': -12 };
+            return addMonths(endDate, monthsByRange[range] || -6);
+        }
+
+        function filterPoints(points, startDate) {
+            if (!startDate) {
+                return points;
+            }
+
+            return points.filter((point) => parseDateOnly(point.date) >= startDate);
+        }
+
+        function buildTrendData(dailyPoints, movingPoints, goalWeight, range) {
+            const endDate = parseDateOnly(today);
+            const startDate = rangeStartDate(range, endDate);
+            const filteredDaily = filterPoints(dailyPoints, startDate);
+            const filteredMoving = filterPoints(movingPoints, startDate);
+            const labels = filteredDaily.map((point) => point.date);
+
+            return {
+                labels,
+                datasets: [
+                    { label: 'Daily', data: filteredDaily.map((point) => point.weightKg), borderColor: '#28f0d4', backgroundColor: 'rgba(40, 240, 212, 0.12)', tension: 0.35, pointRadius: 2 },
+                    { label: '7-day avg', data: filteredMoving.map((point) => point.weightKg), borderColor: '#f8c14a', tension: 0.35, pointRadius: 0 },
+                    { label: 'Goal', data: goalWeight ? labels.map(() => goalWeight) : [], borderColor: '#85e89d', borderDash: [6, 6], pointRadius: 0 }
+                ]
+            };
+        }
+
+        function createTrendChart(canvasId, dailyPoints, movingPoints, goalWeight) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas || !window.Chart) {
+                return null;
+            }
+
+            return new Chart(canvas, {
                 type: 'line',
-                data: {
-                    labels,
-                    datasets: [
-                        { label: 'Daily', data: dailyPoints.map(point => point.weightKg), borderColor: '#28f0d4', backgroundColor: 'rgba(40, 240, 212, 0.12)', tension: 0.35, pointRadius: 2 },
-                        { label: '7-day avg', data: movingPoints.map(point => point.weightKg), borderColor: '#f8c14a', tension: 0.35, pointRadius: 0 },
-                        { label: 'Goal', data: goalWeight ? labels.map(() => goalWeight) : [], borderColor: '#85e89d', borderDash: [6, 6], pointRadius: 0 }
-                    ]
-                },
+                data: buildTrendData(dailyPoints, movingPoints, goalWeight, '1m'),
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7d8798', maxTicksLimit } },
+                        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7d8798', maxTicksLimit: 5 } },
                         y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#7d8798' } }
                     }
                 }
             });
         }
 
-        const daily = @Json.Serialize(Model.Chart.DailyWeights);
-        const moving = @Json.Serialize(Model.Chart.MovingAverages);
-        const goal = @Json.Serialize(Model.Chart.GoalWeightKg);
-        renderTrendChart('trendChart', daily, moving, goal, 4);
+        const trendDaily = @Json.Serialize(Model.LongRangeChart.DailyWeights);
+        const trendMoving = @Json.Serialize(Model.LongRangeChart.MovingAverages);
+        const trendGoal = @Json.Serialize(Model.LongRangeChart.GoalWeightKg);
+        const trendChart = createTrendChart('trendChart', trendDaily, trendMoving, trendGoal);
+        const trendRangeLabel = document.querySelector('[data-trend-range-label]');
 
-        const longRangeDaily = @Json.Serialize(Model.LongRangeChart.DailyWeights);
-        const longRangeMoving = @Json.Serialize(Model.LongRangeChart.MovingAverages);
-        const longRangeGoal = @Json.Serialize(Model.LongRangeChart.GoalWeightKg);
-        renderTrendChart('longRangeTrendChart', longRangeDaily, longRangeMoving, longRangeGoal, 6);
+        document.querySelectorAll('[data-trend-range]').forEach((button) => {
+            button.addEventListener('click', () => {
+                if (!trendChart) {
+                    return;
+                }
+
+                document.querySelectorAll('[data-trend-range]').forEach((rangeButton) => {
+                    rangeButton.setAttribute('aria-pressed', rangeButton === button ? 'true' : 'false');
+                });
+
+                trendChart.data = buildTrendData(trendDaily, trendMoving, trendGoal, button.dataset.trendRange);
+                trendChart.update();
+
+                if (trendRangeLabel) {
+                    trendRangeLabel.textContent = button.dataset.rangeLabel;
+                }
+            });
+        });
     </script>
 }
