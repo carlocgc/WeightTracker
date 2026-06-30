@@ -86,6 +86,7 @@ input:focus-visible {
 .weight-app {
   width: 100%;
   max-width: 430px;
+  margin-inline: auto;
   display: grid;
   gap: 12px;
   padding: 16px;

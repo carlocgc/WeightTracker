@@ -519,6 +519,7 @@ public sealed class DashboardPageTests
 
         return builder.ToString();
     }
+
     private sealed class DashboardTestApp : WebApplicationFactory<Program>
     {
         private static readonly DateTime DefaultUtcNow = new(2026, 6, 26, 9, 0, 0, DateTimeKind.Utc);
