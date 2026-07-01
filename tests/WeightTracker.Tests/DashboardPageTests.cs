@@ -171,6 +171,22 @@ public sealed class DashboardPageTests
     }
 
     [Fact]
+    public async Task Dashboard_WithGoalAndNoQualifyingRecords_RendersRecordEmptyState()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg", goalWeightKg: 80m);
+        await app.AddEntryAsync(Today, 84.0m);
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, html);
+        Assert.Contains("No goal-direction record yet.", html);
+        Assert.DoesNotContain("Set a goal to unlock goal-direction records.", html);
+    }
+
+    [Fact]
     public async Task Dashboard_WithNoGoal_RendersGoalPanelAndSetAction()
     {
         await using var app = new DashboardTestApp();

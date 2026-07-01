@@ -374,6 +374,13 @@ public sealed class IndexModel(
         };
     }
 
+    public string FormatRecordEmptyState()
+    {
+        return Summary.GoalWeightKg.HasValue
+            ? "No goal-direction record yet."
+            : "Set a goal to unlock goal-direction records.";
+    }
+
     public string FormatRecordLabel(GoalProgressRecord record)
     {
         return record.WindowDays.HasValue

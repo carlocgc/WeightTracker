@@ -76,6 +76,7 @@ public sealed class MetricsService
     private const decimal MinimumProjectionPaceKgPerDay = 0.01m;
     private const int MaximumProjectionDays = 730;
     private const int MinimumAllTimeProjectionEntries = 3;
+    private const int MinimumAllTimeProjectionDays = 15;
 
     public GoalProgressInsights BuildMotivationalInsights(
         IEnumerable<WeightEntry> source,
@@ -313,7 +314,8 @@ public sealed class MetricsService
     {
         if (!windowDays.HasValue)
         {
-            return entryCount >= MinimumAllTimeProjectionEntries;
+            return entryCount >= MinimumAllTimeProjectionEntries
+                && elapsedDays >= MinimumAllTimeProjectionDays;
         }
 
         return elapsedDays >= windowDays.Value / 2;

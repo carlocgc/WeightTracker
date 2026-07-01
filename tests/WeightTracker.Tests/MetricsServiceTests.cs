@@ -165,6 +165,22 @@ public sealed class MetricsServiceTests
     }
 
     [Fact]
+    public void BuildMotivationalInsights_WithSparseAllTimeData_ReturnsNeedMoreDataForecast()
+    {
+        var entries = new[]
+        {
+            Entry("2026-06-23", 85.0m),
+            Entry("2026-06-24", 84.0m),
+            Entry("2026-06-25", 83.0m)
+        };
+
+        var insights = _service.BuildMotivationalInsights(entries, new DateOnly(2026, 6, 25), DayOfWeek.Monday, 80.0m);
+
+        Assert.Equal(GoalForecastStatus.NeedMoreData, insights.Forecast.Status);
+        Assert.Null(insights.Forecast.EstimatedDate);
+    }
+
+    [Fact]
     public void BuildMotivationalInsights_WithMaintenanceGoalAfterProgress_ReturnsNeutralStatus()
     {
         var entries = new[]
