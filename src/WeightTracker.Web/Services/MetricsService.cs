@@ -75,6 +75,7 @@ public sealed class MetricsService
     private const decimal MaintenanceToleranceKg = 0.05m;
     private const decimal MinimumProjectionPaceKgPerDay = 0.01m;
     private const int MaximumProjectionDays = 730;
+    private const int MinimumAllTimeProjectionEntries = 3;
 
     public GoalProgressInsights BuildMotivationalInsights(
         IEnumerable<WeightEntry> source,
@@ -195,7 +196,7 @@ public sealed class MetricsService
             GoalDirection.Gain => changeKg.Value > 0
                 ? DirectionalStatus.TowardGoal
                 : DirectionalStatus.AwayFromGoal,
-            GoalDirection.Maintenance => DirectionalStatus.AwayFromGoal,
+            GoalDirection.Maintenance => DirectionalStatus.Neutral,
             _ => DirectionalStatus.Unknown
         };
     }
@@ -247,7 +248,7 @@ public sealed class MetricsService
             }
 
             var elapsedDays = latest.EntryDate.DayNumber - baseline.EntryDate.DayNumber;
-            if (elapsedDays <= 0)
+            if (elapsedDays <= 0 || !HasEnoughForecastEvidence(candidate.WindowDays, elapsedDays, entries.Count))
             {
                 continue;
             }
@@ -306,6 +307,16 @@ public sealed class MetricsService
         var targetDate = latestDate.AddDays(-windowDays);
         return entries.LastOrDefault(item => item.EntryDate <= targetDate)
             ?? entries.FirstOrDefault(item => item.EntryDate > targetDate && item.EntryDate < latestDate);
+    }
+
+    private static bool HasEnoughForecastEvidence(int? windowDays, int elapsedDays, int entryCount)
+    {
+        if (!windowDays.HasValue)
+        {
+            return entryCount >= MinimumAllTimeProjectionEntries;
+        }
+
+        return elapsedDays >= windowDays.Value / 2;
     }
 
     private static IReadOnlyList<GoalProgressRecord> BuildGoalProgressRecords(
