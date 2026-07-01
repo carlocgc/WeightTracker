@@ -71,6 +71,14 @@ public sealed class IndexModel(
 
     public MetricsSummary Summary { get; private set; } = new(null, null, null, null, null, null, null, null, null, null);
 
+    public GoalProgressInsights ProgressInsights { get; private set; } = new(
+        GoalDirection.None,
+        DirectionalStatus.Unknown,
+        DirectionalStatus.Unknown,
+        DirectionalStatus.Unknown,
+        new GoalForecast(GoalForecastStatus.NoGoal, null, null, null, null),
+        []);
+
     public ChartSeries Chart { get; private set; } = new([], [], [], null);
 
     public ChartSeries LongRangeChart { get; private set; } = new([], [], [], null);
@@ -255,6 +263,7 @@ public sealed class IndexModel(
             : null;
 
         Summary = metricsService.BuildSummary(entries, Today, settings.WeekStartsOn, settings.GoalWeightKg);
+        ProgressInsights = metricsService.BuildMotivationalInsights(entries, Today, settings.WeekStartsOn, settings.GoalWeightKg);
         Chart = metricsService.BuildChartSeries(compactChartEntries, settings.WeekStartsOn, settings.GoalWeightKg);
         LongRangeChart = metricsService.BuildChartSeries(entries, settings.WeekStartsOn, settings.GoalWeightKg);
         EntryCount = entries.Count;
@@ -296,6 +305,74 @@ public sealed class IndexModel(
             ? 0
             : WeightConversionService.FromKilograms(Math.Abs(valueKg.Value), DisplayUnit) * Math.Sign(valueKg.Value);
         return $"{display:+0.0;-0.0;0.0} {DisplayUnit}";
+    }
+
+    public string DirectionStatusClass(DirectionalStatus status)
+    {
+        return status switch
+        {
+            DirectionalStatus.TowardGoal => "metric-status--toward",
+            DirectionalStatus.AwayFromGoal => "metric-status--away",
+            DirectionalStatus.Neutral => "metric-status--neutral",
+            _ => "metric-status--unknown"
+        };
+    }
+
+    public string DirectionArrow(decimal? changeKg, DirectionalStatus status)
+    {
+        if (status == DirectionalStatus.Unknown || !changeKg.HasValue)
+        {
+            return string.Empty;
+        }
+
+        if (Math.Abs(changeKg.Value) < 0.05m)
+        {
+            return "→";
+        }
+
+        return changeKg.Value < 0 ? "↓" : "↑";
+    }
+
+    public string FormatForecastValue()
+    {
+        return ProgressInsights.Forecast.Status switch
+        {
+            GoalForecastStatus.Estimated when ProgressInsights.Forecast.EstimatedDate.HasValue
+                => $"Estimated {ProgressInsights.Forecast.EstimatedDate.Value:MMM yyyy}",
+            GoalForecastStatus.AtGoal => "At goal",
+            GoalForecastStatus.MovingAwayFromGoal => "Moving away from goal",
+            GoalForecastStatus.PaceTooFlat => "Pace too flat to project",
+            GoalForecastStatus.NeedMoreData => "Need more recent data",
+            GoalForecastStatus.NoLatestWeight => "Waiting for first weight",
+            _ => "Set a goal to unlock forecast"
+        };
+    }
+
+    public string FormatForecastDetail()
+    {
+        return ProgressInsights.Forecast.Status switch
+        {
+            GoalForecastStatus.Estimated when ProgressInsights.Forecast.SourceWindow is not null
+                => $"Based on {ProgressInsights.Forecast.SourceWindow} pace",
+            GoalForecastStatus.AtGoal => "Maintenance target reached",
+            GoalForecastStatus.MovingAwayFromGoal => "Recent pace is not closing the gap",
+            GoalForecastStatus.PaceTooFlat => "Recent movement is too small",
+            GoalForecastStatus.NeedMoreData => "Add more entries to estimate pace",
+            GoalForecastStatus.NoLatestWeight => "Add your first entry",
+            _ => "Goal-aware estimates need a target"
+        };
+    }
+
+    public string FormatRecordLabel(GoalProgressRecord record)
+    {
+        return record.WindowDays.HasValue
+            ? $"Best {record.WindowDays.Value}-day progress"
+            : "Best all-time progress";
+    }
+
+    public string FormatRecordRange(GoalProgressRecord record)
+    {
+        return $"{record.StartDate:dd MMM} to {record.EndDate:dd MMM}";
     }
 
     public string FormatGoalDistance()
