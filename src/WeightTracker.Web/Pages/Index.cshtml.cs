@@ -301,7 +301,7 @@ public sealed class IndexModel(
     {
         return valueKg is null
             ? "-"
-            : $"{WeightConversionService.FromKilograms(valueKg.Value, DisplayUnit):0.0} {DisplayUnit}";
+            : $"{WeightConversionService.FromKilograms(valueKg.Value, DisplayUnit):0.0#} {DisplayUnit}";
     }
 
     public string FormatSignedWeight(decimal? valueKg)
@@ -314,7 +314,7 @@ public sealed class IndexModel(
         var display = valueKg.Value == 0
             ? 0
             : WeightConversionService.FromKilograms(Math.Abs(valueKg.Value), DisplayUnit) * Math.Sign(valueKg.Value);
-        return $"{display:+0.0;-0.0;0.0} {DisplayUnit}";
+        return $"{display:+0.0#;-0.0#;0.0} {DisplayUnit}";
     }
 
     public string DirectionStatusClass(DirectionalStatus status)

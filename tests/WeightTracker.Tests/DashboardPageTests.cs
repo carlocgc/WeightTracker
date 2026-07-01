@@ -80,6 +80,26 @@ public sealed class DashboardPageTests
     }
 
     [Fact]
+    public async Task Dashboard_RendersDisplayWeightsWithUpToTwoDecimalPlaces()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg", goalWeightKg: 80.07m);
+        await app.AddEntryAsync(new DateOnly(2026, 5, 27), 82.45m);
+        await app.AddEntryAsync(Today, 82.12m);
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, html);
+        Assert.Contains("82.12 kg", html);
+        Assert.Contains("82.45 kg", html);
+        Assert.Contains("80.07 kg", html);
+        Assert.Contains("+2.05 kg", decoded);
+    }
+
+    [Fact]
     public async Task Dashboard_RendersEntryWeightsWithTwoDecimalPlacesInDialog()
     {
         await using var app = new DashboardTestApp();
