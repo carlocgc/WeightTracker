@@ -306,11 +306,18 @@ input:focus-visible {
 .insight-grid strong.insight-value {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .insight-value span {
-  font-size: 0.9rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 1.05rem;
+  font-weight: 900;
   line-height: 1;
 }
 
