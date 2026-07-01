@@ -132,7 +132,7 @@
                     <strong class="insight-value @Model.DirectionStatusClass(Model.ProgressInsights.ThirtyDayStatus)"
                             aria-label="30-day change: @Model.FormatSignedWeight(Model.Summary.ThirtyDayChangeKg), @Model.DirectionStatusLabel(Model.ProgressInsights.ThirtyDayStatus)">
                         @Model.FormatSignedWeight(Model.Summary.ThirtyDayChangeKg)
-                        <span aria-hidden="true">@Model.DirectionArrow(Model.Summary.ThirtyDayChangeKg, Model.ProgressInsights.ThirtyDayStatus)</span>
+                        <span class="direction-arrow @Model.DirectionArrowClass(Model.Summary.ThirtyDayChangeKg, Model.ProgressInsights.ThirtyDayStatus)" aria-hidden="true"></span>
                     </strong>
                 </article>
                 <article>
@@ -140,7 +140,7 @@
                     <strong class="insight-value @Model.DirectionStatusClass(Model.ProgressInsights.NinetyDayStatus)"
                             aria-label="90-day change: @Model.FormatSignedWeight(Model.Summary.NinetyDayChangeKg), @Model.DirectionStatusLabel(Model.ProgressInsights.NinetyDayStatus)">
                         @Model.FormatSignedWeight(Model.Summary.NinetyDayChangeKg)
-                        <span aria-hidden="true">@Model.DirectionArrow(Model.Summary.NinetyDayChangeKg, Model.ProgressInsights.NinetyDayStatus)</span>
+                        <span class="direction-arrow @Model.DirectionArrowClass(Model.Summary.NinetyDayChangeKg, Model.ProgressInsights.NinetyDayStatus)" aria-hidden="true"></span>
                     </strong>
                 </article>
                 <article>

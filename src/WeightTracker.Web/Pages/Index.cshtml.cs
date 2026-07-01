@@ -329,19 +329,19 @@ public sealed class IndexModel(
         };
     }
 
-    public string DirectionArrow(decimal? changeKg, DirectionalStatus status)
+    public string DirectionArrowClass(decimal? changeKg, DirectionalStatus status)
     {
         if (status == DirectionalStatus.Unknown || !changeKg.HasValue)
         {
-            return string.Empty;
+            return "direction-arrow--none";
         }
 
         if (Math.Abs(changeKg.Value) < 0.05m)
         {
-            return "→";
+            return "direction-arrow--flat";
         }
 
-        return changeKg.Value < 0 ? "↓" : "↑";
+        return changeKg.Value < 0 ? "direction-arrow--down" : "direction-arrow--up";
     }
 
     public string FormatForecastValue()
