@@ -318,6 +318,17 @@ public sealed class IndexModel(
         };
     }
 
+    public string DirectionStatusLabel(DirectionalStatus status)
+    {
+        return status switch
+        {
+            DirectionalStatus.TowardGoal => "toward goal",
+            DirectionalStatus.AwayFromGoal => "away from goal",
+            DirectionalStatus.Neutral => "neutral",
+            _ => "unknown"
+        };
+    }
+
     public string DirectionArrow(decimal? changeKg, DirectionalStatus status)
     {
         if (status == DirectionalStatus.Unknown || !changeKg.HasValue)

@@ -129,14 +129,16 @@
                 </article>
                 <article>
                     <span>30-day</span>
-                    <strong class="insight-value @Model.DirectionStatusClass(Model.ProgressInsights.ThirtyDayStatus)">
+                    <strong class="insight-value @Model.DirectionStatusClass(Model.ProgressInsights.ThirtyDayStatus)"
+                            aria-label="30-day change: @Model.FormatSignedWeight(Model.Summary.ThirtyDayChangeKg), @Model.DirectionStatusLabel(Model.ProgressInsights.ThirtyDayStatus)">
                         @Model.FormatSignedWeight(Model.Summary.ThirtyDayChangeKg)
                         <span aria-hidden="true">@Model.DirectionArrow(Model.Summary.ThirtyDayChangeKg, Model.ProgressInsights.ThirtyDayStatus)</span>
                     </strong>
                 </article>
                 <article>
                     <span>90-day</span>
-                    <strong class="insight-value @Model.DirectionStatusClass(Model.ProgressInsights.NinetyDayStatus)">
+                    <strong class="insight-value @Model.DirectionStatusClass(Model.ProgressInsights.NinetyDayStatus)"
+                            aria-label="90-day change: @Model.FormatSignedWeight(Model.Summary.NinetyDayChangeKg), @Model.DirectionStatusLabel(Model.ProgressInsights.NinetyDayStatus)">
                         @Model.FormatSignedWeight(Model.Summary.NinetyDayChangeKg)
                         <span aria-hidden="true">@Model.DirectionArrow(Model.Summary.NinetyDayChangeKg, Model.ProgressInsights.NinetyDayStatus)</span>
                     </strong>
@@ -148,10 +150,10 @@
             </div>
             @if (Model.ProgressInsights.Records.Count > 0)
             {
-                <div class="record-grid" aria-label="Personal records">
+                <div class="record-grid" role="list" aria-label="Personal records">
                     @foreach (var record in Model.ProgressInsights.Records)
                     {
-                        <article>
+                        <article role="listitem">
                             <span>@Model.FormatRecordLabel(record)</span>
                             <strong>@Model.FormatSignedWeight(record.ChangeKg)</strong>
                             <small>@Model.FormatRecordRange(record)</small>
