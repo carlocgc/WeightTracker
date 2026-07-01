@@ -51,11 +51,49 @@ public sealed class DashboardPageTests
         Assert.Contains("data-entry-calendar", html);
         Assert.Contains("data-calendar-day=\"2026-06-25\"", html);
         Assert.Contains("data-entry-date=\"2026-06-25\"", html);
-        Assert.Contains("data-entry-weight=\"82.4\"", html);
+        Assert.Contains("data-entry-weight=\"82.40\"", html);
         Assert.DoesNotContain("entry-card", html);
         Assert.Contains("inputmode=\"decimal\"", html);
         Assert.Contains("data-decimal-input", html);
         Assert.DoesNotContain("class=\"validation-summary\"", html);
+    }
+
+    [Fact]
+    public async Task Dashboard_CalendarNavigationKeepsEntryDialogOpenWhenChangingMonths()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg");
+        var client = app.CreateClient();
+
+        var dashboardResponse = await client.GetAsync("/");
+        var dashboardHtml = await dashboardResponse.Content.ReadAsStringAsync();
+
+        Assert.True(dashboardResponse.StatusCode == HttpStatusCode.OK, dashboardHtml);
+        Assert.Contains("href=\"?month=2026-05&amp;entry=true\"", dashboardHtml);
+
+        var monthResponse = await client.GetAsync("/?month=2026-05&entry=true");
+        var monthHtml = await monthResponse.Content.ReadAsStringAsync();
+
+        Assert.True(monthResponse.StatusCode == HttpStatusCode.OK, monthHtml);
+        Assert.Contains("id=\"entryDialog\"", monthHtml);
+        Assert.Contains("data-open-entry-on-load=\"true\"", monthHtml);
+    }
+
+    [Fact]
+    public async Task Dashboard_RendersEntryWeightsWithTwoDecimalPlacesInDialog()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg");
+        await app.AddEntryAsync(Today, 82.12m);
+        await app.AddEntryAsync(Yesterday, 82.45m);
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, html);
+        Assert.Contains("value=\"82.12\"", html);
+        Assert.Contains("data-entry-weight=\"82.45\"", html);
     }
 
     [Fact]
@@ -73,7 +111,7 @@ public sealed class DashboardPageTests
         Assert.Contains("May 2026", html);
         Assert.Contains("data-calendar-day=\"2026-05-15\"", html);
         Assert.Contains("data-entry-date=\"2026-05-15\"", html);
-        Assert.Contains("data-entry-weight=\"83.2\"", html);
+        Assert.Contains("data-entry-weight=\"83.20\"", html);
     }
 
     [Fact]

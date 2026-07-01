@@ -49,6 +49,9 @@ public sealed class IndexModel(
     [BindProperty(SupportsGet = true, Name = "month")]
     public string? CalendarMonth { get; set; }
 
+    [BindProperty(SupportsGet = true, Name = "entry")]
+    public bool EntryDialogOpen { get; set; }
+
     public string DisplayUnit { get; private set; } = "kg";
 
     public string Theme { get; private set; } = "dark";
@@ -88,6 +91,8 @@ public sealed class IndexModel(
     public bool GoalDialogOpen { get; private set; }
 
     public string GoalDialogOpenAttribute => GoalDialogOpen ? "true" : "false";
+
+    public string EntryDialogOpenAttribute => EntryDialogOpen ? "true" : "false";
 
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
@@ -277,6 +282,11 @@ public sealed class IndexModel(
 
     public string CalendarMonthLabel => VisibleMonth.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
 
+    public string EntryCalendarMonthHref(string? month)
+    {
+        return $"?month={month}&entry=true";
+    }
+
     public string EntryDateIso(DateOnly value)
     {
         return value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -431,14 +441,29 @@ public sealed class IndexModel(
 
     public string InputValue(DashboardCalendarDay day)
     {
-        return InputWeightValue(day.WeightKg);
+        return EntryInputWeightValue(day.WeightKg);
+    }
+
+    public string EntryInputWeightValue(decimal? valueKg)
+    {
+        return InputWeightValue(valueKg, 2);
     }
 
     public string InputWeightValue(decimal? valueKg)
     {
-        return valueKg is null
-            ? string.Empty
-            : decimal.Round(WeightConversionService.FromKilograms(valueKg.Value, DisplayUnit), 1).ToString("0.0", CultureInfo.InvariantCulture);
+        return InputWeightValue(valueKg, 1);
+    }
+
+    private string InputWeightValue(decimal? valueKg, int decimalPlaces)
+    {
+        if (valueKg is null)
+        {
+            return string.Empty;
+        }
+
+        var format = decimalPlaces == 2 ? "0.00" : "0.0";
+        return decimal.Round(WeightConversionService.FromKilograms(valueKg.Value, DisplayUnit), decimalPlaces)
+            .ToString(format, CultureInfo.InvariantCulture);
     }
 
     private IReadOnlyList<DashboardCalendarDay> BuildCalendarDays(

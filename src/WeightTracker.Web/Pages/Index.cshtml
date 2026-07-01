@@ -180,7 +180,7 @@
     </div>
 </div>
 
-<dialog id="entryDialog" class="entry-dialog" role="dialog" aria-modal="true" aria-labelledby="entryDialogTitle">
+<dialog id="entryDialog" class="entry-dialog" role="dialog" aria-modal="true" aria-labelledby="entryDialogTitle" data-open-entry-on-load="@Model.EntryDialogOpenAttribute">
     <form method="post" class="entry-dialog__form">
         <div class="entry-dialog__header">
             <div>
@@ -191,7 +191,7 @@
         </div>
 
         <div class="calendar-nav" aria-label="Calendar month navigation">
-            <a class="icon-button" href="?month=@Model.PreviousCalendarMonthQuery" aria-label="Previous month">&lt;</a>
+            <a class="icon-button" href="@Model.EntryCalendarMonthHref(Model.PreviousCalendarMonthQuery)" aria-label="Previous month">&lt;</a>
             <strong>@Model.CalendarMonthLabel</strong>
             @if (Model.NextCalendarMonthQuery is null)
             {
@@ -199,7 +199,7 @@
             }
             else
             {
-                <a class="icon-button" href="?month=@Model.NextCalendarMonthQuery" aria-label="Next month">&gt;</a>
+                <a class="icon-button" href="@Model.EntryCalendarMonthHref(Model.NextCalendarMonthQuery)" aria-label="Next month">&gt;</a>
             }
         </div>
 
@@ -240,7 +240,7 @@
         <input id="weightInput"
                class="weight-input"
                name="Weight"
-               value="@(initialDay is null ? Model.InputWeightValue(Model.TodayWeightKg) : Model.InputValue(initialDay))"
+               value="@(initialDay is null ? Model.EntryInputWeightValue(Model.TodayWeightKg) : Model.InputValue(initialDay))"
                type="text"
                inputmode="decimal"
                autocomplete="off"
@@ -412,15 +412,22 @@
             button.addEventListener('click', () => selectCalendarDay(button));
         });
 
+        function openEntryDialog() {
+            if (entryDialog.open) {
+                weightInput?.focus();
+                return;
+            }
+
+            if (entryDialog.showModal) {
+                entryDialog.showModal();
+            } else {
+                entryDialog.setAttribute('open', 'open');
+            }
+            weightInput?.focus();
+        }
+
         document.querySelectorAll('[data-open-entry]').forEach((button) => {
-            button.addEventListener('click', () => {
-                if (entryDialog.showModal) {
-                    entryDialog.showModal();
-                } else {
-                    entryDialog.setAttribute('open', 'open');
-                }
-                weightInput.focus();
-            });
+            button.addEventListener('click', openEntryDialog);
         });
 
         document.querySelectorAll('[data-close-entry]').forEach((button) => {
@@ -514,12 +521,12 @@
                 deleteAllSubmit.disabled = deleteAllConfirmInput.value !== 'DELETE';
             }
         });
+        if (entryDialog?.dataset.openEntryOnLoad === 'true') {
+            openEntryDialog();
+        }
+
         if (document.querySelector('.validation-summary-errors') && entryDialog && goalDialog?.dataset.openGoalOnLoad !== 'true') {
-            if (entryDialog.showModal) {
-                entryDialog.showModal();
-            } else {
-                entryDialog.setAttribute('open', 'open');
-            }
+            openEntryDialog();
         }
 
         function parseDateOnly(value) {
