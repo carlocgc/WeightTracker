@@ -338,7 +338,7 @@ public sealed class IndexModel(
         return ProgressInsights.Forecast.Status switch
         {
             GoalForecastStatus.Estimated when ProgressInsights.Forecast.EstimatedDate.HasValue
-                => $"Estimated {ProgressInsights.Forecast.EstimatedDate.Value:MMM yyyy}",
+                => $"Estimated {ProgressInsights.Forecast.EstimatedDate.Value.ToString("MMM yyyy", CultureInfo.InvariantCulture)}",
             GoalForecastStatus.AtGoal => "At goal",
             GoalForecastStatus.MovingAwayFromGoal => "Moving away from goal",
             GoalForecastStatus.PaceTooFlat => "Pace too flat to project",
@@ -372,7 +372,7 @@ public sealed class IndexModel(
 
     public string FormatRecordRange(GoalProgressRecord record)
     {
-        return $"{record.StartDate:dd MMM} to {record.EndDate:dd MMM}";
+        return $"{record.StartDate.ToString("dd MMM", CultureInfo.InvariantCulture)} to {record.EndDate.ToString("dd MMM", CultureInfo.InvariantCulture)}";
     }
 
     public string FormatGoalDistance()
