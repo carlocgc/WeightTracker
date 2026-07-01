@@ -55,6 +55,7 @@ public sealed class DashboardPageTests
         Assert.DoesNotContain("entry-card", html);
         Assert.Contains("inputmode=\"decimal\"", html);
         Assert.Contains("data-decimal-input", html);
+        Assert.DoesNotContain("class=\"validation-summary\"", html);
     }
 
     [Fact]
@@ -91,7 +92,10 @@ public sealed class DashboardPageTests
 
         Assert.True(response.StatusCode == HttpStatusCode.OK, html);
         Assert.DoesNotContain("Long-term trend", html);
-        Assert.Contains("Insights", html);
+        Assert.Contains("Progress insights", html);
+        Assert.Contains("Goal forecast", html);
+        Assert.Contains("Set a goal to unlock forecast", html);
+        Assert.Contains("Set a goal to unlock goal-direction records.", html);
         Assert.DoesNotContain("id=\"longRangeTrendChart\"", html);
         Assert.Contains("data-trend-range=\"1m\"", html);
         Assert.Contains("data-trend-range=\"3m\"", html);
@@ -125,11 +129,45 @@ public sealed class DashboardPageTests
 
         Assert.True(response.StatusCode == HttpStatusCode.OK, html);
         Assert.DoesNotContain("Long-term trend", html);
-        Assert.Contains("Insights", html);
+        Assert.Contains("Progress insights", html);
+        Assert.Contains("Goal forecast", html);
+        Assert.Contains("Set a goal to unlock forecast", html);
         Assert.DoesNotContain("id=\"longRangeTrendChart\"", html);
         Assert.Contains("Entry count", html);
         Assert.Contains(">0</strong>", html);
         Assert.Contains("No weights recorded yet.", html);
+    }
+
+    [Fact]
+    public async Task Dashboard_WithGoal_RendersForecastAndGoalDirectionRecords()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg", goalWeightKg: 80m);
+        await app.AddEntryAsync(new DateOnly(2026, 5, 27), 86.0m);
+        await app.AddEntryAsync(new DateOnly(2026, 6, 19), 84.0m);
+        await app.AddEntryAsync(Today, 83.0m);
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
+        var decoded = WebUtility.HtmlDecode(html);
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, html);
+        Assert.Contains("Progress insights", html);
+        Assert.Contains("Goal forecast", html);
+        Assert.Contains("Estimated Jul 2026", html);
+        Assert.Contains("Based on 30-day pace", html);
+        Assert.Contains("Best 7-day progress", html);
+        Assert.Contains("Best 30-day progress", html);
+        Assert.Contains("-1.0 kg", decoded);
+        Assert.Contains("-3.0 kg", decoded);
+        Assert.Contains("19 Jun to 26 Jun", html);
+        Assert.Contains("27 May to 26 Jun", html);
+        Assert.Contains("metric-status--toward", html);
+        Assert.Contains("aria-label=\"30-day change:", html);
+        Assert.Contains("toward goal", html);
+        Assert.Contains("role=\"list\" aria-label=\"Personal records\"", html);
+        Assert.Contains("role=\"listitem\"", html);
     }
 
     [Fact]
@@ -262,6 +300,7 @@ public sealed class DashboardPageTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Enter a weight greater than zero.", html);
+        Assert.Contains("validation-summary", html);
         Assert.Empty(await app.GetEntriesAsync());
     }
 
