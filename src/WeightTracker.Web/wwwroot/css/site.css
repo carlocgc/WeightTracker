@@ -303,6 +303,93 @@ input:focus-visible {
   line-height: 1.15;
 }
 
+.insight-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.insight-value span {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.metric-status--toward {
+  color: #2bd46f;
+}
+
+.metric-status--away {
+  color: #ff3347;
+}
+
+.metric-status--neutral,
+.metric-status--unknown {
+  color: var(--text);
+}
+
+.forecast-card,
+.record-grid article {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0d121b;
+}
+
+.forecast-card {
+  display: grid;
+  gap: 5px;
+  margin-top: 12px;
+}
+
+.forecast-card span,
+.record-grid span,
+.forecast-card small,
+.record-grid small,
+.insight-note {
+  color: var(--muted);
+}
+
+.forecast-card span,
+.record-grid span {
+  font-size: 0.72rem;
+}
+
+.forecast-card strong,
+.record-grid strong {
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
+.forecast-card small,
+.record-grid small {
+  font-size: 0.72rem;
+}
+
+.record-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.record-grid article {
+  display: grid;
+  gap: 5px;
+}
+
+.record-grid span,
+.record-grid strong,
+.record-grid small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.insight-note {
+  margin: 12px 0 0;
+  font-size: 0.86rem;
+}
+
 .trend-panel,
 .history-panel,
 .insights-panel,
@@ -567,6 +654,10 @@ button:disabled {
 
   .insight-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .record-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .data-actions {

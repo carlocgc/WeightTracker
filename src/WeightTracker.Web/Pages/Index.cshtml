@@ -6,7 +6,10 @@
     var initialDay = Model.CalendarDays.LastOrDefault(day => !day.IsFuture) ?? Model.CalendarDays.FirstOrDefault();
 }
 
-<div asp-validation-summary="All" class="validation-summary"></div>
+@if (!ViewData.ModelState.IsValid)
+{
+    <div asp-validation-summary="All" class="validation-summary"></div>
+}
 @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
 {
     <div class="status-message" role="status">@Model.StatusMessage</div>
@@ -101,10 +104,15 @@
         </section>
 
 
-        <section class="insights-panel" aria-label="Weight insights">
+        <section class="insights-panel" aria-label="Progress insights">
             <div class="section-heading">
-                <h2>Insights</h2>
-                <span>All recorded weights</span>
+                <h2>Progress insights</h2>
+                <span>Goal-aware view</span>
+            </div>
+            <div class="forecast-card">
+                <span>Goal forecast</span>
+                <strong>@Model.FormatForecastValue()</strong>
+                <small>@Model.FormatForecastDetail()</small>
             </div>
             <div class="insight-grid">
                 <article>
@@ -121,17 +129,40 @@
                 </article>
                 <article>
                     <span>30-day</span>
-                    <strong>@Model.FormatSignedWeight(Model.Summary.ThirtyDayChangeKg)</strong>
+                    <strong class="insight-value @Model.DirectionStatusClass(Model.ProgressInsights.ThirtyDayStatus)">
+                        @Model.FormatSignedWeight(Model.Summary.ThirtyDayChangeKg)
+                        <span aria-hidden="true">@Model.DirectionArrow(Model.Summary.ThirtyDayChangeKg, Model.ProgressInsights.ThirtyDayStatus)</span>
+                    </strong>
                 </article>
                 <article>
                     <span>90-day</span>
-                    <strong>@Model.FormatSignedWeight(Model.Summary.NinetyDayChangeKg)</strong>
+                    <strong class="insight-value @Model.DirectionStatusClass(Model.ProgressInsights.NinetyDayStatus)">
+                        @Model.FormatSignedWeight(Model.Summary.NinetyDayChangeKg)
+                        <span aria-hidden="true">@Model.DirectionArrow(Model.Summary.NinetyDayChangeKg, Model.ProgressInsights.NinetyDayStatus)</span>
+                    </strong>
                 </article>
                 <article>
                     <span>Entry count</span>
                     <strong>@Model.EntryCount</strong>
                 </article>
             </div>
+            @if (Model.ProgressInsights.Records.Count > 0)
+            {
+                <div class="record-grid" aria-label="Personal records">
+                    @foreach (var record in Model.ProgressInsights.Records)
+                    {
+                        <article>
+                            <span>@Model.FormatRecordLabel(record)</span>
+                            <strong>@Model.FormatSignedWeight(record.ChangeKg)</strong>
+                            <small>@Model.FormatRecordRange(record)</small>
+                        </article>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="insight-note">Set a goal to unlock goal-direction records.</p>
+            }
         </section>
         <section class="data-panel" aria-label="Data management">
             <div class="section-heading">
