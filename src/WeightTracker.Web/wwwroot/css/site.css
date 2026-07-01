@@ -303,7 +303,7 @@ input:focus-visible {
   line-height: 1.15;
 }
 
-.insight-value {
+.insight-grid strong.insight-value {
   display: inline-flex;
   align-items: center;
   gap: 6px;
