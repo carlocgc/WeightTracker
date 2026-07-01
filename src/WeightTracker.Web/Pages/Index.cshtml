@@ -6,7 +6,10 @@
     var initialDay = Model.CalendarDays.LastOrDefault(day => !day.IsFuture) ?? Model.CalendarDays.FirstOrDefault();
 }
 
-<div asp-validation-summary="All" class="validation-summary"></div>
+@if (!ViewData.ModelState.IsValid)
+{
+    <div asp-validation-summary="All" class="validation-summary"></div>
+}
 @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
 {
     <div class="status-message" role="status">@Model.StatusMessage</div>
@@ -101,10 +104,15 @@
         </section>
 
 
-        <section class="insights-panel" aria-label="Weight insights">
+        <section class="insights-panel" aria-label="Progress insights">
             <div class="section-heading">
-                <h2>Insights</h2>
-                <span>All recorded weights</span>
+                <h2>Progress insights</h2>
+                <span>Goal-aware view</span>
+            </div>
+            <div class="forecast-card">
+                <span>Goal forecast</span>
+                <strong>@Model.FormatForecastValue()</strong>
+                <small>@Model.FormatForecastDetail()</small>
             </div>
             <div class="insight-grid">
                 <article>
@@ -121,17 +129,42 @@
                 </article>
                 <article>
                     <span>30-day</span>
-                    <strong>@Model.FormatSignedWeight(Model.Summary.ThirtyDayChangeKg)</strong>
+                    <strong class="insight-value @Model.DirectionStatusClass(Model.ProgressInsights.ThirtyDayStatus)"
+                            aria-label="30-day change: @Model.FormatSignedWeight(Model.Summary.ThirtyDayChangeKg), @Model.DirectionStatusLabel(Model.ProgressInsights.ThirtyDayStatus)">
+                        @Model.FormatSignedWeight(Model.Summary.ThirtyDayChangeKg)
+                        <span class="direction-arrow @Model.DirectionArrowClass(Model.Summary.ThirtyDayChangeKg, Model.ProgressInsights.ThirtyDayStatus)" aria-hidden="true"></span>
+                    </strong>
                 </article>
                 <article>
                     <span>90-day</span>
-                    <strong>@Model.FormatSignedWeight(Model.Summary.NinetyDayChangeKg)</strong>
+                    <strong class="insight-value @Model.DirectionStatusClass(Model.ProgressInsights.NinetyDayStatus)"
+                            aria-label="90-day change: @Model.FormatSignedWeight(Model.Summary.NinetyDayChangeKg), @Model.DirectionStatusLabel(Model.ProgressInsights.NinetyDayStatus)">
+                        @Model.FormatSignedWeight(Model.Summary.NinetyDayChangeKg)
+                        <span class="direction-arrow @Model.DirectionArrowClass(Model.Summary.NinetyDayChangeKg, Model.ProgressInsights.NinetyDayStatus)" aria-hidden="true"></span>
+                    </strong>
                 </article>
                 <article>
                     <span>Entry count</span>
                     <strong>@Model.EntryCount</strong>
                 </article>
             </div>
+            @if (Model.ProgressInsights.Records.Count > 0)
+            {
+                <div class="record-grid" role="list" aria-label="Personal records">
+                    @foreach (var record in Model.ProgressInsights.Records)
+                    {
+                        <article role="listitem">
+                            <span>@Model.FormatRecordLabel(record)</span>
+                            <strong>@Model.FormatSignedWeight(record.ChangeKg)</strong>
+                            <small>@Model.FormatRecordRange(record)</small>
+                        </article>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="insight-note">@Model.FormatRecordEmptyState()</p>
+            }
         </section>
         <section class="data-panel" aria-label="Data management">
             <div class="section-heading">
@@ -147,7 +180,7 @@
     </div>
 </div>
 
-<dialog id="entryDialog" class="entry-dialog" role="dialog" aria-modal="true" aria-labelledby="entryDialogTitle">
+<dialog id="entryDialog" class="entry-dialog" role="dialog" aria-modal="true" aria-labelledby="entryDialogTitle" data-open-entry-on-load="@Model.EntryDialogOpenAttribute">
     <form method="post" class="entry-dialog__form">
         <div class="entry-dialog__header">
             <div>
@@ -158,7 +191,7 @@
         </div>
 
         <div class="calendar-nav" aria-label="Calendar month navigation">
-            <a class="icon-button" href="?month=@Model.PreviousCalendarMonthQuery" aria-label="Previous month">&lt;</a>
+            <a class="icon-button" href="@Model.EntryCalendarMonthHref(Model.PreviousCalendarMonthQuery)" aria-label="Previous month">&lt;</a>
             <strong>@Model.CalendarMonthLabel</strong>
             @if (Model.NextCalendarMonthQuery is null)
             {
@@ -166,7 +199,7 @@
             }
             else
             {
-                <a class="icon-button" href="?month=@Model.NextCalendarMonthQuery" aria-label="Next month">&gt;</a>
+                <a class="icon-button" href="@Model.EntryCalendarMonthHref(Model.NextCalendarMonthQuery)" aria-label="Next month">&gt;</a>
             }
         </div>
 
@@ -207,7 +240,7 @@
         <input id="weightInput"
                class="weight-input"
                name="Weight"
-               value="@(initialDay is null ? Model.InputWeightValue(Model.TodayWeightKg) : Model.InputValue(initialDay))"
+               value="@(initialDay is null ? Model.EntryInputWeightValue(Model.TodayWeightKg) : Model.InputValue(initialDay))"
                type="text"
                inputmode="decimal"
                autocomplete="off"
@@ -379,15 +412,22 @@
             button.addEventListener('click', () => selectCalendarDay(button));
         });
 
+        function openEntryDialog() {
+            if (entryDialog.open) {
+                weightInput?.focus();
+                return;
+            }
+
+            if (entryDialog.showModal) {
+                entryDialog.showModal();
+            } else {
+                entryDialog.setAttribute('open', 'open');
+            }
+            weightInput?.focus();
+        }
+
         document.querySelectorAll('[data-open-entry]').forEach((button) => {
-            button.addEventListener('click', () => {
-                if (entryDialog.showModal) {
-                    entryDialog.showModal();
-                } else {
-                    entryDialog.setAttribute('open', 'open');
-                }
-                weightInput.focus();
-            });
+            button.addEventListener('click', openEntryDialog);
         });
 
         document.querySelectorAll('[data-close-entry]').forEach((button) => {
@@ -481,12 +521,12 @@
                 deleteAllSubmit.disabled = deleteAllConfirmInput.value !== 'DELETE';
             }
         });
+        if (entryDialog?.dataset.openEntryOnLoad === 'true') {
+            openEntryDialog();
+        }
+
         if (document.querySelector('.validation-summary-errors') && entryDialog && goalDialog?.dataset.openGoalOnLoad !== 'true') {
-            if (entryDialog.showModal) {
-                entryDialog.showModal();
-            } else {
-                entryDialog.setAttribute('open', 'open');
-            }
+            openEntryDialog();
         }
 
         function parseDateOnly(value) {

@@ -10,6 +10,7 @@ This roadmap tracks product and delivery work that is still useful after the ini
 - Time-zone-aware local date resolution.
 - One weight entry per local calendar date.
 - Save, update, read, and delete behavior for date-based entries.
+- Goal-aware motivational dashboard insights with guarded forecast and goal-direction records.
 - Trend metrics service and dashboard chart data.
 - Mobile-first dashboard with calendar-based entry dialog.
 - Dark, compact application styling.
@@ -62,5 +63,6 @@ Decide whether production startup should continue using `EnsureCreatedAsync` or 
 
 - Improve dashboard accessibility and keyboard behavior around the entry dialog.
 - Add richer visual checks for mobile and desktop layouts.
+- Add weekly delta bar charts using configured calendar weeks.
 - Add deployment notes for Unraid or other home-server targets.
 - Consider authentication only after the single-user local deployment path is stable.

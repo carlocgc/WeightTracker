@@ -22,8 +22,86 @@ public sealed record ChartSeries(
     IReadOnlyList<MetricPoint> MovingAverages,
     decimal? GoalWeightKg);
 
+public enum GoalDirection
+{
+    None,
+    Loss,
+    Gain,
+    Maintenance
+}
+
+public enum DirectionalStatus
+{
+    Unknown,
+    Neutral,
+    TowardGoal,
+    AwayFromGoal
+}
+
+public enum GoalForecastStatus
+{
+    NoGoal,
+    NoLatestWeight,
+    AtGoal,
+    NeedMoreData,
+    PaceTooFlat,
+    MovingAwayFromGoal,
+    Estimated
+}
+
+public sealed record GoalForecast(
+    GoalForecastStatus Status,
+    DateOnly? EstimatedDate,
+    string? SourceWindow,
+    decimal? DailyPaceKg,
+    int? DaysToGoal);
+
+public sealed record GoalProgressRecord(
+    int? WindowDays,
+    decimal ChangeKg,
+    DateOnly StartDate,
+    DateOnly EndDate);
+
+public sealed record GoalProgressInsights(
+    GoalDirection GoalDirection,
+    DirectionalStatus WeekOverWeekStatus,
+    DirectionalStatus ThirtyDayStatus,
+    DirectionalStatus NinetyDayStatus,
+    GoalForecast Forecast,
+    IReadOnlyList<GoalProgressRecord> Records);
+
 public sealed class MetricsService
 {
+    private const decimal MaintenanceToleranceKg = 0.05m;
+    private const decimal MinimumProjectionPaceKgPerDay = 0.01m;
+    private const int MaximumProjectionDays = 730;
+    private const int MinimumAllTimeProjectionEntries = 3;
+    private const int MinimumAllTimeProjectionDays = 15;
+
+    public GoalProgressInsights BuildMotivationalInsights(
+        IEnumerable<WeightEntry> source,
+        DateOnly today,
+        DayOfWeek weekStartsOn,
+        decimal? goalWeightKg)
+    {
+        var entries = source
+            .Where(item => item.EntryDate <= today)
+            .OrderBy(item => item.EntryDate)
+            .ToList();
+
+        decimal? latestWeightKg = entries.Count == 0 ? null : entries[^1].WeightKg;
+        var direction = DetermineGoalDirection(latestWeightKg, goalWeightKg);
+        var summary = BuildSummary(entries, today, weekStartsOn, goalWeightKg);
+
+        return new GoalProgressInsights(
+            direction,
+            ClassifyChange(summary.WeekOverWeekDeltaKg, direction),
+            ClassifyChange(summary.ThirtyDayChangeKg, direction),
+            ClassifyChange(summary.NinetyDayChangeKg, direction),
+            BuildGoalForecast(entries, goalWeightKg, direction),
+            BuildGoalProgressRecords(entries, direction));
+    }
+
     public MetricsSummary BuildSummary(
         IEnumerable<WeightEntry> source,
         DateOnly today,
@@ -81,6 +159,216 @@ public sealed class MetricsService
             .ToList();
 
         return new ChartSeries(daily, weekly, moving, goalWeightKg);
+    }
+
+    private static GoalDirection DetermineGoalDirection(decimal? latestWeightKg, decimal? goalWeightKg)
+    {
+        if (!latestWeightKg.HasValue || !goalWeightKg.HasValue)
+        {
+            return GoalDirection.None;
+        }
+
+        var difference = latestWeightKg.Value - goalWeightKg.Value;
+        if (decimal.Abs(difference) <= MaintenanceToleranceKg)
+        {
+            return GoalDirection.Maintenance;
+        }
+
+        return difference > 0 ? GoalDirection.Loss : GoalDirection.Gain;
+    }
+
+    private static DirectionalStatus ClassifyChange(decimal? changeKg, GoalDirection direction)
+    {
+        if (!changeKg.HasValue || direction == GoalDirection.None)
+        {
+            return DirectionalStatus.Unknown;
+        }
+
+        if (decimal.Abs(changeKg.Value) <= MaintenanceToleranceKg)
+        {
+            return DirectionalStatus.Neutral;
+        }
+
+        return direction switch
+        {
+            GoalDirection.Loss => changeKg.Value < 0
+                ? DirectionalStatus.TowardGoal
+                : DirectionalStatus.AwayFromGoal,
+            GoalDirection.Gain => changeKg.Value > 0
+                ? DirectionalStatus.TowardGoal
+                : DirectionalStatus.AwayFromGoal,
+            GoalDirection.Maintenance => DirectionalStatus.Neutral,
+            _ => DirectionalStatus.Unknown
+        };
+    }
+
+    private static GoalForecast BuildGoalForecast(
+        IReadOnlyList<WeightEntry> entries,
+        decimal? goalWeightKg,
+        GoalDirection direction)
+    {
+        if (!goalWeightKg.HasValue)
+        {
+            return new GoalForecast(GoalForecastStatus.NoGoal, null, null, null, null);
+        }
+
+        if (entries.Count == 0)
+        {
+            return new GoalForecast(GoalForecastStatus.NoLatestWeight, null, null, null, null);
+        }
+
+        if (direction == GoalDirection.None)
+        {
+            return new GoalForecast(GoalForecastStatus.NoGoal, null, null, null, null);
+        }
+
+        var latest = entries[^1];
+        if (direction == GoalDirection.Maintenance)
+        {
+            return new GoalForecast(GoalForecastStatus.AtGoal, latest.EntryDate, null, 0m, 0);
+        }
+
+        var sawAwayFromGoal = false;
+        var sawFlatPace = false;
+        var candidates = new (int? WindowDays, string SourceWindow)[]
+        {
+            (30, "30-day"),
+            (90, "90-day"),
+            (null, "all-time")
+        };
+
+        foreach (var candidate in candidates)
+        {
+            var baseline = candidate.WindowDays.HasValue
+                ? FindBaseline(entries, latest.EntryDate, candidate.WindowDays.Value)
+                : entries[0];
+
+            if (baseline is null)
+            {
+                continue;
+            }
+
+            var elapsedDays = latest.EntryDate.DayNumber - baseline.EntryDate.DayNumber;
+            if (elapsedDays <= 0 || !HasEnoughForecastEvidence(candidate.WindowDays, elapsedDays, entries.Count))
+            {
+                continue;
+            }
+
+            var changeKg = latest.WeightKg - baseline.WeightKg;
+            var dailyPaceKg = changeKg / elapsedDays;
+            var status = ClassifyChange(changeKg, direction);
+
+            if (status == DirectionalStatus.AwayFromGoal)
+            {
+                sawAwayFromGoal = true;
+                continue;
+            }
+
+            if (status != DirectionalStatus.TowardGoal
+                || decimal.Abs(dailyPaceKg) < MinimumProjectionPaceKgPerDay)
+            {
+                sawFlatPace = true;
+                continue;
+            }
+
+            var remainingKg = decimal.Abs(latest.WeightKg - goalWeightKg.Value);
+            var daysToGoal = (int)decimal.Ceiling(remainingKg / decimal.Abs(dailyPaceKg));
+            if (daysToGoal < 0 || daysToGoal > MaximumProjectionDays)
+            {
+                sawFlatPace = true;
+                continue;
+            }
+
+            return new GoalForecast(
+                GoalForecastStatus.Estimated,
+                latest.EntryDate.AddDays(daysToGoal),
+                candidate.SourceWindow,
+                decimal.Round(dailyPaceKg, 3),
+                daysToGoal);
+        }
+
+        if (sawAwayFromGoal)
+        {
+            return new GoalForecast(GoalForecastStatus.MovingAwayFromGoal, null, null, null, null);
+        }
+
+        if (sawFlatPace)
+        {
+            return new GoalForecast(GoalForecastStatus.PaceTooFlat, null, null, null, null);
+        }
+
+        return new GoalForecast(GoalForecastStatus.NeedMoreData, null, null, null, null);
+    }
+
+    private static WeightEntry? FindBaseline(
+        IReadOnlyList<WeightEntry> entries,
+        DateOnly latestDate,
+        int windowDays)
+    {
+        var targetDate = latestDate.AddDays(-windowDays);
+        return entries.LastOrDefault(item => item.EntryDate <= targetDate)
+            ?? entries.FirstOrDefault(item => item.EntryDate > targetDate && item.EntryDate < latestDate);
+    }
+
+    private static bool HasEnoughForecastEvidence(int? windowDays, int elapsedDays, int entryCount)
+    {
+        if (!windowDays.HasValue)
+        {
+            return entryCount >= MinimumAllTimeProjectionEntries
+                && elapsedDays >= MinimumAllTimeProjectionDays;
+        }
+
+        return elapsedDays >= windowDays.Value / 2;
+    }
+
+    private static IReadOnlyList<GoalProgressRecord> BuildGoalProgressRecords(
+        IReadOnlyList<WeightEntry> entries,
+        GoalDirection direction)
+    {
+        if (entries.Count < 2 || direction is GoalDirection.None or GoalDirection.Maintenance)
+        {
+            return [];
+        }
+
+        var records = new List<GoalProgressRecord>();
+        int?[] windows = [7, 30, 90, null];
+
+        foreach (var windowDays in windows)
+        {
+            GoalProgressRecord? bestRecord = null;
+            var bestProgressKg = 0m;
+
+            for (var startIndex = 0; startIndex < entries.Count - 1; startIndex++)
+            {
+                for (var endIndex = startIndex + 1; endIndex < entries.Count; endIndex++)
+                {
+                    var start = entries[startIndex];
+                    var end = entries[endIndex];
+                    var elapsedDays = end.EntryDate.DayNumber - start.EntryDate.DayNumber;
+                    if (elapsedDays <= 0 || (windowDays.HasValue && elapsedDays > windowDays.Value))
+                    {
+                        continue;
+                    }
+
+                    var changeKg = end.WeightKg - start.WeightKg;
+                    var progressKg = direction == GoalDirection.Loss ? -changeKg : changeKg;
+                    if (progressKg <= 0m || progressKg <= bestProgressKg)
+                    {
+                        continue;
+                    }
+
+                    bestProgressKg = progressKg;
+                    bestRecord = new GoalProgressRecord(windowDays, changeKg, start.EntryDate, end.EntryDate);
+                }
+            }
+
+            if (bestRecord is not null)
+            {
+                records.Add(bestRecord);
+            }
+        }
+
+        return records;
     }
 
     private static DateOnly StartOfWeek(DateOnly date, DayOfWeek weekStartsOn)
