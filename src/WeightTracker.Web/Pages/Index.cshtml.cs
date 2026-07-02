@@ -49,6 +49,9 @@ public sealed class IndexModel(
     [BindProperty(SupportsGet = true, Name = "month")]
     public string? CalendarMonth { get; set; }
 
+    [BindProperty(SupportsGet = true, Name = "entry")]
+    public bool EntryDialogOpen { get; set; }
+
     public string DisplayUnit { get; private set; } = "kg";
 
     public string Theme { get; private set; } = "dark";
@@ -71,6 +74,14 @@ public sealed class IndexModel(
 
     public MetricsSummary Summary { get; private set; } = new(null, null, null, null, null, null, null, null, null, null);
 
+    public GoalProgressInsights ProgressInsights { get; private set; } = new(
+        GoalDirection.None,
+        DirectionalStatus.Unknown,
+        DirectionalStatus.Unknown,
+        DirectionalStatus.Unknown,
+        new GoalForecast(GoalForecastStatus.NoGoal, null, null, null, null),
+        []);
+
     public ChartSeries Chart { get; private set; } = new([], [], [], null);
 
     public ChartSeries LongRangeChart { get; private set; } = new([], [], [], null);
@@ -80,6 +91,8 @@ public sealed class IndexModel(
     public bool GoalDialogOpen { get; private set; }
 
     public string GoalDialogOpenAttribute => GoalDialogOpen ? "true" : "false";
+
+    public string EntryDialogOpenAttribute => EntryDialogOpen ? "true" : "false";
 
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
@@ -255,6 +268,7 @@ public sealed class IndexModel(
             : null;
 
         Summary = metricsService.BuildSummary(entries, Today, settings.WeekStartsOn, settings.GoalWeightKg);
+        ProgressInsights = metricsService.BuildMotivationalInsights(entries, Today, settings.WeekStartsOn, settings.GoalWeightKg);
         Chart = metricsService.BuildChartSeries(compactChartEntries, settings.WeekStartsOn, settings.GoalWeightKg);
         LongRangeChart = metricsService.BuildChartSeries(entries, settings.WeekStartsOn, settings.GoalWeightKg);
         EntryCount = entries.Count;
@@ -267,6 +281,11 @@ public sealed class IndexModel(
     }
 
     public string CalendarMonthLabel => VisibleMonth.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+
+    public string EntryCalendarMonthHref(string? month)
+    {
+        return $"?month={month}&entry=true";
+    }
 
     public string EntryDateIso(DateOnly value)
     {
@@ -282,7 +301,7 @@ public sealed class IndexModel(
     {
         return valueKg is null
             ? "-"
-            : $"{WeightConversionService.FromKilograms(valueKg.Value, DisplayUnit):0.0} {DisplayUnit}";
+            : $"{WeightConversionService.FromKilograms(valueKg.Value, DisplayUnit):0.0#} {DisplayUnit}";
     }
 
     public string FormatSignedWeight(decimal? valueKg)
@@ -295,7 +314,93 @@ public sealed class IndexModel(
         var display = valueKg.Value == 0
             ? 0
             : WeightConversionService.FromKilograms(Math.Abs(valueKg.Value), DisplayUnit) * Math.Sign(valueKg.Value);
-        return $"{display:+0.0;-0.0;0.0} {DisplayUnit}";
+        return $"{display:+0.0#;-0.0#;0.0} {DisplayUnit}";
+    }
+
+    public string DirectionStatusClass(DirectionalStatus status)
+    {
+        return status switch
+        {
+            DirectionalStatus.TowardGoal => "metric-status--toward",
+            DirectionalStatus.AwayFromGoal => "metric-status--away",
+            DirectionalStatus.Neutral => "metric-status--neutral",
+            _ => "metric-status--unknown"
+        };
+    }
+
+    public string DirectionStatusLabel(DirectionalStatus status)
+    {
+        return status switch
+        {
+            DirectionalStatus.TowardGoal => "toward goal",
+            DirectionalStatus.AwayFromGoal => "away from goal",
+            DirectionalStatus.Neutral => "neutral",
+            _ => "unknown"
+        };
+    }
+
+    public string DirectionArrowClass(decimal? changeKg, DirectionalStatus status)
+    {
+        if (status == DirectionalStatus.Unknown || !changeKg.HasValue)
+        {
+            return "direction-arrow--none";
+        }
+
+        if (Math.Abs(changeKg.Value) < 0.05m)
+        {
+            return "direction-arrow--flat";
+        }
+
+        return changeKg.Value < 0 ? "direction-arrow--down" : "direction-arrow--up";
+    }
+
+    public string FormatForecastValue()
+    {
+        return ProgressInsights.Forecast.Status switch
+        {
+            GoalForecastStatus.Estimated when ProgressInsights.Forecast.EstimatedDate.HasValue
+                => $"Estimated {ProgressInsights.Forecast.EstimatedDate.Value.ToString("MMM yyyy", CultureInfo.InvariantCulture)}",
+            GoalForecastStatus.AtGoal => "At goal",
+            GoalForecastStatus.MovingAwayFromGoal => "Moving away from goal",
+            GoalForecastStatus.PaceTooFlat => "Pace too flat to project",
+            GoalForecastStatus.NeedMoreData => "Need more recent data",
+            GoalForecastStatus.NoLatestWeight => "Waiting for first weight",
+            _ => "Set a goal to unlock forecast"
+        };
+    }
+
+    public string FormatForecastDetail()
+    {
+        return ProgressInsights.Forecast.Status switch
+        {
+            GoalForecastStatus.Estimated when ProgressInsights.Forecast.SourceWindow is not null
+                => $"Based on {ProgressInsights.Forecast.SourceWindow} pace",
+            GoalForecastStatus.AtGoal => "Maintenance target reached",
+            GoalForecastStatus.MovingAwayFromGoal => "Recent pace is not closing the gap",
+            GoalForecastStatus.PaceTooFlat => "Recent movement is too small",
+            GoalForecastStatus.NeedMoreData => "Add more entries to estimate pace",
+            GoalForecastStatus.NoLatestWeight => "Add your first entry",
+            _ => "Goal-aware estimates need a target"
+        };
+    }
+
+    public string FormatRecordEmptyState()
+    {
+        return Summary.GoalWeightKg.HasValue
+            ? "No goal-direction record yet."
+            : "Set a goal to unlock goal-direction records.";
+    }
+
+    public string FormatRecordLabel(GoalProgressRecord record)
+    {
+        return record.WindowDays.HasValue
+            ? $"Best {record.WindowDays.Value}-day progress"
+            : "Best all-time progress";
+    }
+
+    public string FormatRecordRange(GoalProgressRecord record)
+    {
+        return $"{record.StartDate.ToString("dd MMM", CultureInfo.InvariantCulture)} to {record.EndDate.ToString("dd MMM", CultureInfo.InvariantCulture)}";
     }
 
     public string FormatGoalDistance()
@@ -336,14 +441,29 @@ public sealed class IndexModel(
 
     public string InputValue(DashboardCalendarDay day)
     {
-        return InputWeightValue(day.WeightKg);
+        return EntryInputWeightValue(day.WeightKg);
+    }
+
+    public string EntryInputWeightValue(decimal? valueKg)
+    {
+        return InputWeightValue(valueKg, 2);
     }
 
     public string InputWeightValue(decimal? valueKg)
     {
-        return valueKg is null
-            ? string.Empty
-            : decimal.Round(WeightConversionService.FromKilograms(valueKg.Value, DisplayUnit), 1).ToString("0.0", CultureInfo.InvariantCulture);
+        return InputWeightValue(valueKg, 1);
+    }
+
+    private string InputWeightValue(decimal? valueKg, int decimalPlaces)
+    {
+        if (valueKg is null)
+        {
+            return string.Empty;
+        }
+
+        var format = decimalPlaces == 2 ? "0.00" : "0.0";
+        return decimal.Round(WeightConversionService.FromKilograms(valueKg.Value, DisplayUnit), decimalPlaces)
+            .ToString(format, CultureInfo.InvariantCulture);
     }
 
     private IReadOnlyList<DashboardCalendarDay> BuildCalendarDays(
