@@ -86,6 +86,8 @@ public sealed class IndexModel(
 
     public ChartSeries LongRangeChart { get; private set; } = new([], [], [], null);
 
+    public IReadOnlyList<WeeklyDeltaPoint> WeeklyDeltas { get; private set; } = [];
+
     public int EntryCount { get; private set; }
 
     public bool GoalDialogOpen { get; private set; }
@@ -271,6 +273,7 @@ public sealed class IndexModel(
         ProgressInsights = metricsService.BuildMotivationalInsights(entries, Today, settings.WeekStartsOn, settings.GoalWeightKg);
         Chart = metricsService.BuildChartSeries(compactChartEntries, settings.WeekStartsOn, settings.GoalWeightKg);
         LongRangeChart = metricsService.BuildChartSeries(entries, settings.WeekStartsOn, settings.GoalWeightKg);
+        WeeklyDeltas = metricsService.BuildWeeklyDeltaSeries(entries, Today, settings.WeekStartsOn, settings.GoalWeightKg);
         EntryCount = entries.Count;
         if (!GoalDialogOpen)
         {

@@ -176,6 +176,31 @@ public sealed class DashboardPageTests
     }
 
     [Fact]
+    public async Task Dashboard_RendersWeeklyChangePanelWithSerializedDeltaData()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg", goalWeightKg: 80m);
+        await app.AddEntryAsync(new DateOnly(2026, 6, 10), 86.0m);
+        await app.AddEntryAsync(new DateOnly(2026, 6, 17), 84.0m);
+        await app.AddEntryAsync(Today, 83.0m);
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, html);
+        Assert.Contains("aria-label=\"Weekly change\"", html);
+        Assert.Contains("id=\"weeklyDeltaChart\"", html);
+        Assert.Contains("const weeklyDeltas =", html);
+        Assert.Contains("\"weekStart\":\"2026-06-15\"", html);
+        Assert.Contains("\"weekEnd\":\"2026-06-21\"", html);
+        Assert.Contains("\"deltaKg\":-2.000", html);
+        Assert.Contains("\"directionalStatus\":2", html);
+        Assert.Contains("Progress insights", html);
+        Assert.Contains("Recent history", html);
+    }
+
+    [Fact]
     public async Task Dashboard_WithNoEntries_RendersEmptyDeepInsights()
     {
         await using var app = new DashboardTestApp();
