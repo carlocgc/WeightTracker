@@ -22,6 +22,15 @@ public sealed record ChartSeries(
     IReadOnlyList<MetricPoint> MovingAverages,
     decimal? GoalWeightKg);
 
+public sealed record WeeklyDeltaPoint(
+    DateOnly WeekStart,
+    DateOnly WeekEnd,
+    decimal? CurrentWeekAverageKg,
+    decimal? PreviousWeekAverageKg,
+    decimal? DeltaKg,
+    bool IsCurrentWeek,
+    DirectionalStatus DirectionalStatus);
+
 public enum GoalDirection
 {
     None,
@@ -159,6 +168,48 @@ public sealed class MetricsService
             .ToList();
 
         return new ChartSeries(daily, weekly, moving, goalWeightKg);
+    }
+
+    public IReadOnlyList<WeeklyDeltaPoint> BuildWeeklyDeltaSeries(
+        IEnumerable<WeightEntry> source,
+        DateOnly today,
+        DayOfWeek weekStartsOn,
+        decimal? goalWeightKg)
+    {
+        var entries = source
+            .Where(item => item.EntryDate <= today)
+            .OrderBy(item => item.EntryDate)
+            .ToList();
+        var currentWeekStart = StartOfWeek(today, weekStartsOn);
+        var firstVisibleWeekStart = currentWeekStart.AddDays(-77);
+        decimal? latestWeightKg = entries.Count == 0 ? null : entries[^1].WeightKg;
+        var direction = DetermineGoalDirection(latestWeightKg, goalWeightKg);
+        var points = new List<WeeklyDeltaPoint>();
+
+        for (var offset = 0; offset < 12; offset++)
+        {
+            var weekStart = firstVisibleWeekStart.AddDays(offset * 7);
+            var configuredWeekEnd = weekStart.AddDays(6);
+            var weekEnd = configuredWeekEnd > today ? today : configuredWeekEnd;
+            var previousWeekStart = weekStart.AddDays(-7);
+            var previousWeekEnd = weekStart.AddDays(-1);
+            var currentAverage = AverageForRange(entries, weekStart, weekEnd);
+            var previousAverage = AverageForRange(entries, previousWeekStart, previousWeekEnd);
+            decimal? delta = currentAverage.HasValue && previousAverage.HasValue
+                ? currentAverage.Value - previousAverage.Value
+                : null;
+
+            points.Add(new WeeklyDeltaPoint(
+                weekStart,
+                weekEnd,
+                currentAverage,
+                previousAverage,
+                delta,
+                weekStart == currentWeekStart,
+                ClassifyChange(delta, direction)));
+        }
+
+        return points;
     }
 
     private static GoalDirection DetermineGoalDirection(decimal? latestWeightKg, decimal? goalWeightKg)

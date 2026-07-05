@@ -214,6 +214,102 @@ public sealed class MetricsServiceTests
         Assert.Empty(insights.Records);
     }
 
+    [Fact]
+    public void BuildWeeklyDeltaSeries_BuildsTwelveConfiguredWeeksEndingAtCurrentWeek()
+    {
+        var entries = new[]
+        {
+            Entry("2026-06-08", 84.0m),
+            Entry("2026-06-15", 83.0m),
+            Entry("2026-06-16", 82.0m),
+            Entry("2026-06-22", 81.0m),
+            Entry("2026-06-26", 80.0m)
+        };
+
+        var series = _service.BuildWeeklyDeltaSeries(entries, new DateOnly(2026, 6, 26), DayOfWeek.Monday, null);
+
+        Assert.Equal(12, series.Count);
+        Assert.Equal(new DateOnly(2026, 4, 6), series[0].WeekStart);
+        Assert.Equal(new DateOnly(2026, 4, 12), series[0].WeekEnd);
+        Assert.Equal(new DateOnly(2026, 6, 22), series[^1].WeekStart);
+        Assert.Equal(new DateOnly(2026, 6, 26), series[^1].WeekEnd);
+        Assert.True(series[^1].IsCurrentWeek);
+    }
+
+    [Fact]
+    public void BuildWeeklyDeltaSeries_UsesWeeklyAveragesRatherThanLastEntries()
+    {
+        var entries = new[]
+        {
+            Entry("2026-06-09", 90.0m),
+            Entry("2026-06-10", 80.0m),
+            Entry("2026-06-16", 84.0m),
+            Entry("2026-06-17", 82.0m)
+        };
+
+        var series = _service.BuildWeeklyDeltaSeries(entries, new DateOnly(2026, 6, 20), DayOfWeek.Monday, null);
+        var week = Assert.Single(series, point => point.WeekStart == new DateOnly(2026, 6, 15));
+
+        Assert.Equal(83.0m, week.CurrentWeekAverageKg);
+        Assert.Equal(85.0m, week.PreviousWeekAverageKg);
+        Assert.Equal(-2.0m, week.DeltaKg);
+    }
+
+    [Fact]
+    public void BuildWeeklyDeltaSeries_PreservesBucketsButReturnsNullDeltaForMissingAdjacentWeek()
+    {
+        var entries = new[]
+        {
+            Entry("2026-06-03", 86.0m),
+            Entry("2026-06-17", 84.0m)
+        };
+
+        var series = _service.BuildWeeklyDeltaSeries(entries, new DateOnly(2026, 6, 20), DayOfWeek.Monday, null);
+        var week = Assert.Single(series, point => point.WeekStart == new DateOnly(2026, 6, 15));
+
+        Assert.Equal(84.0m, week.CurrentWeekAverageKg);
+        Assert.Null(week.PreviousWeekAverageKg);
+        Assert.Null(week.DeltaKg);
+        Assert.Equal(DirectionalStatus.Unknown, week.DirectionalStatus);
+    }
+
+    [Fact]
+    public void BuildWeeklyDeltaSeries_UsesPreviousOutOfRangeWeekForFirstVisibleDelta()
+    {
+        var entries = new[]
+        {
+            Entry("2026-03-31", 90.0m),
+            Entry("2026-04-07", 88.0m)
+        };
+
+        var series = _service.BuildWeeklyDeltaSeries(entries, new DateOnly(2026, 6, 26), DayOfWeek.Monday, 80.0m);
+        var firstVisible = series[0];
+
+        Assert.Equal(new DateOnly(2026, 4, 6), firstVisible.WeekStart);
+        Assert.Equal(88.0m, firstVisible.CurrentWeekAverageKg);
+        Assert.Equal(90.0m, firstVisible.PreviousWeekAverageKg);
+        Assert.Equal(-2.0m, firstVisible.DeltaKg);
+        Assert.Equal(DirectionalStatus.TowardGoal, firstVisible.DirectionalStatus);
+    }
+
+    [Fact]
+    public void BuildWeeklyDeltaSeries_ClassifiesGainGoalAndMaintenanceGoalDeltas()
+    {
+        var entries = new[]
+        {
+            Entry("2026-06-09", 80.0m),
+            Entry("2026-06-16", 82.0m),
+            Entry("2026-06-23", 82.03m)
+        };
+
+        var gainSeries = _service.BuildWeeklyDeltaSeries(entries, new DateOnly(2026, 6, 26), DayOfWeek.Monday, 86.0m);
+        var gainWeek = Assert.Single(gainSeries, point => point.WeekStart == new DateOnly(2026, 6, 15));
+        Assert.Equal(DirectionalStatus.TowardGoal, gainWeek.DirectionalStatus);
+
+        var maintenanceSeries = _service.BuildWeeklyDeltaSeries(entries, new DateOnly(2026, 6, 26), DayOfWeek.Monday, 82.0m);
+        var maintenanceWeek = Assert.Single(maintenanceSeries, point => point.WeekStart == new DateOnly(2026, 6, 22));
+        Assert.Equal(DirectionalStatus.Neutral, maintenanceWeek.DirectionalStatus);
+    }
     private static WeightEntry Entry(string date, decimal weightKg)
     {
         return new WeightEntry
