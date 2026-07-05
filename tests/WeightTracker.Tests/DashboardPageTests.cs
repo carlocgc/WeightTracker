@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -192,10 +193,18 @@ public sealed class DashboardPageTests
         Assert.Contains("aria-label=\"Weekly change\"", html);
         Assert.Contains("id=\"weeklyDeltaChart\"", html);
         Assert.Contains("const weeklyDeltas =", html);
-        Assert.Contains("\"weekStart\":\"2026-06-15\"", html);
-        Assert.Contains("\"weekEnd\":\"2026-06-21\"", html);
-        Assert.Contains("\"deltaKg\":-2.000", html);
-        Assert.Contains("\"directionalStatus\":2", html);
+
+        var weeklyDeltasMatch = Regex.Match(html, "const weeklyDeltas = (?<json>.*?);", RegexOptions.Singleline);
+        Assert.True(weeklyDeltasMatch.Success, html);
+
+        using var weeklyDeltasJson = JsonDocument.Parse(weeklyDeltasMatch.Groups["json"].Value);
+        var weeklyDelta = Assert.Single(
+            weeklyDeltasJson.RootElement.EnumerateArray(),
+            point => point.GetProperty("weekStart").GetString() == "2026-06-15");
+
+        Assert.Equal("2026-06-21", weeklyDelta.GetProperty("weekEnd").GetString());
+        Assert.Equal(-2.0m, weeklyDelta.GetProperty("deltaKg").GetDecimal());
+        Assert.Equal((int)DirectionalStatus.TowardGoal, weeklyDelta.GetProperty("directionalStatus").GetInt32());
         Assert.Contains("Progress insights", html);
         Assert.Contains("Recent history", html);
     }
