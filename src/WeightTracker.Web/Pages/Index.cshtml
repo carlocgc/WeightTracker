@@ -80,6 +80,16 @@
     </div>
 
     <div class="dashboard-supporting">
+        <section class="weekly-change-panel" aria-label="Weekly change">
+            <div class="section-heading">
+                <h2>Weekly change</h2>
+                <span>Last 12 weeks</span>
+            </div>
+            <div class="weekly-delta-chart-frame">
+                <canvas id="weeklyDeltaChart"></canvas>
+            </div>
+        </section>
+
         <section class="history-panel" aria-label="Recent history">
             <div class="section-heading">
                 <h2>Recent history</h2>
@@ -593,10 +603,109 @@
             });
         }
 
+        function signedWeightLabel(valueKg) {
+            if (valueKg === null || valueKg === undefined) {
+                return '-';
+            }
+
+            const converted = valueKg * unitMultiplier;
+            const rounded = Math.round(converted * 100) / 100;
+            return `${rounded > 0 ? '+' : ''}${rounded.toFixed(Math.abs(rounded) >= 10 ? 1 : 2)} ${displayUnit}`;
+        }
+
+        function weightLabel(valueKg) {
+            if (valueKg === null || valueKg === undefined) {
+                return '-';
+            }
+
+            const converted = valueKg * unitMultiplier;
+            const rounded = Math.round(converted * 100) / 100;
+            return `${rounded.toFixed(Math.abs(rounded) >= 10 ? 1 : 2)} ${displayUnit}`;
+        }
+
+        function weeklyDeltaColor(point) {
+            if (point.deltaKg === null || point.deltaKg === undefined) {
+                return 'rgba(125, 135, 152, 0.22)';
+            }
+
+            if (point.directionalStatus === 2) {
+                return 'rgba(133, 232, 157, 0.82)';
+            }
+
+            if (point.directionalStatus === 3) {
+                return 'rgba(255, 111, 143, 0.82)';
+            }
+
+            if (Math.abs(point.deltaKg) <= 0.05) {
+                return 'rgba(248, 193, 74, 0.72)';
+            }
+
+            return point.deltaKg < 0
+                ? 'rgba(40, 240, 212, 0.76)'
+                : 'rgba(248, 193, 74, 0.76)';
+        }
+
+        function createWeeklyDeltaChart(canvasId, points) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas || !window.Chart) {
+                return null;
+            }
+
+            return new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: points.map((point) => point.isCurrentWeek ? 'This week' : point.weekStart.slice(5)),
+                    datasets: [
+                        {
+                            label: 'Weekly change',
+                            data: points.map((point) => point.deltaKg),
+                            backgroundColor: points.map(weeklyDeltaColor),
+                            borderWidth: 0,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title(items) {
+                                    const point = points[items[0].dataIndex];
+                                    return point.isCurrentWeek ? 'This week' : `${point.weekStart} to ${point.weekEnd}`;
+                                },
+                                label(item) {
+                                    const point = points[item.dataIndex];
+                                    return `Delta: ${signedWeightLabel(point.deltaKg)}`;
+                                },
+                                afterLabel(item) {
+                                    const point = points[item.dataIndex];
+                                    return [
+                                        `Average: ${weightLabel(point.currentWeekAverageKg)}`,
+                                        `Previous: ${weightLabel(point.previousWeekAverageKg)}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#7d8798', maxTicksLimit: 6 } },
+                        y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#7d8798', callback: (value) => signedWeightLabel(value) } }
+                    }
+                }
+            });
+        }
+
+        const displayUnit = '@Model.DisplayUnit';
+        const unitMultiplier = displayUnit === 'lb' ? 2.20462262185 : 1;
         const trendDaily = @Json.Serialize(Model.LongRangeChart.DailyWeights);
         const trendMoving = @Json.Serialize(Model.LongRangeChart.MovingAverages);
         const trendGoal = @Json.Serialize(Model.LongRangeChart.GoalWeightKg);
         const trendChart = createTrendChart('trendChart', trendDaily, trendMoving, trendGoal);
+        const weeklyDeltas = @Json.Serialize(Model.WeeklyDeltas);
+        createWeeklyDeltaChart('weeklyDeltaChart', weeklyDeltas);
         const trendRangeLabel = document.querySelector('[data-trend-range-label]');
 
         document.querySelectorAll('[data-trend-range]').forEach((button) => {
