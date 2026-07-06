@@ -1,36 +1,19 @@
 # WeightTracker Roadmap
 
-This roadmap tracks product and delivery work that is still useful after the initial planning docs have been completed. Completed agent implementation plans and specs should not stay in the repo unless they describe durable behavior that is not documented elsewhere.
+This roadmap tracks future product and delivery work only. Completed feature behavior belongs in `README.md`, tests, and source code; completed agent implementation plans should not be retained here.
 
-## Completed Foundation
+## Development Order
 
-- ASP.NET Core Razor Pages app scaffold.
-- SQLite persistence through Entity Framework Core.
-- Settings persistence for display unit, goal weight, week start, time zone, and theme.
-- Time-zone-aware local date resolution.
-- One weight entry per local calendar date.
-- Save, update, read, and delete behavior for date-based entries.
-- Goal-aware motivational dashboard insights with guarded forecast and goal-direction records.
-- Trend metrics service and dashboard chart data.
-- Mobile-first dashboard with calendar-based entry dialog.
-- Dark, compact application styling.
-- Automated tests for services, persistence, startup, and dashboard behavior.
-- Scrollable dashboard deep insights with long-term trend and focused metrics.
-- CSV export/import and guarded delete-all tools for weight-entry data.
+### 1. Database Schema Management
 
-## Near-Term Work
+Decide whether production startup should continue using `EnsureCreatedAsync` or move to EF Core migrations.
 
-### Dashboard Goal Feature
+- Prefer migrations before relying on long-lived user data.
+- Add initial migration files if choosing migrations.
+- Make startup initialization idempotent.
+- Keep test database setup simple and isolated.
 
-Add goal management as a focused dashboard feature rather than a general setting.
-
-- Show a compact Goal panel directly below the latest weight hero.
-- Use a small trophy icon button to open a goal modal.
-- Let users set, update, and clear the optional goal.
-- Keep goal input in the active display unit while storing kilograms internally.
-- Preserve the existing dashboard flow without adding a new page.
-
-### Settings Page
+### 2. Settings Page
 
 Add a settings page so users can change non-goal preferences from the UI.
 
@@ -40,29 +23,33 @@ Add a settings page so users can change non-goal preferences from the UI.
 - Theme preference.
 - Validate inputs server-side and preserve current settings on invalid submissions.
 
-### Deployment Packaging
+### 3. Dashboard Accessibility
 
-Add Docker-based deployment support.
+Improve accessibility and keyboard behavior for existing dashboard dialogs and controls.
 
-- Add `src/WeightTracker.Web/Dockerfile`.
-- Add `docker-compose.yml`.
-- Persist SQLite data in a mounted volume or host directory.
-- Document direct `dotnet run`, test, and Docker Compose workflows in `README.md`.
-- Validate with `dotnet test WeightTracker.sln` and `docker compose config`.
+- Verify focus movement when opening and closing entry, goal, import, and delete dialogs.
+- Ensure validation errors are announced and associated with the relevant fields.
+- Confirm chart-adjacent summaries provide enough non-visual information.
 
-### Database Schema Management
+### 4. Visual Verification
 
-Decide whether production startup should continue using `EnsureCreatedAsync` or move to EF Core migrations.
+Add richer visual checks for mobile and desktop layouts.
 
-- Prefer migrations before relying on long-lived user data.
-- Add initial migration files if choosing migrations.
-- Make startup initialization idempotent.
-- Keep test database setup simple and isolated.
+- Cover compact mobile, tablet, desktop, and wide desktop dashboard layouts.
+- Include chart rendering and dialog states in the checks.
+- Keep the checks deterministic enough for CI or documented local verification.
 
-## Later Work
+### 5. Deployment Documentation
 
-- Improve dashboard accessibility and keyboard behavior around the entry dialog.
-- Add richer visual checks for mobile and desktop layouts.
-- Add weekly delta bar charts using configured calendar weeks.
-- Add deployment notes for Unraid or other home-server targets.
-- Consider authentication only after the single-user local deployment path is stable.
+Add deployment notes for Unraid or other home-server targets.
+
+- Document volume placement for persistent SQLite data.
+- Describe safe network exposure assumptions and reverse-proxy expectations.
+- Keep Docker Hub and local Compose workflows aligned with `README.md`.
+
+### 6. Authentication
+
+Consider authentication only after the single-user local deployment path is stable.
+
+- Decide whether authentication belongs inside the app or should stay delegated to external access-controlled infrastructure.
+- Preserve the current warning against direct internet exposure until a security model exists.
