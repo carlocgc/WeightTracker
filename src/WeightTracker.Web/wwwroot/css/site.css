@@ -147,6 +147,7 @@ input:focus-visible {
 .weight-hero,
 .goal-panel,
 .trend-panel,
+.weekly-change-panel,
 .history-panel,
 .insights-panel,
 .data-panel,
@@ -414,6 +415,7 @@ input:focus-visible {
 }
 
 .trend-panel,
+.weekly-change-panel,
 .history-panel,
 .insights-panel,
 .data-panel {
@@ -458,7 +460,15 @@ input:focus-visible {
   overflow: hidden;
 }
 
-.trend-panel canvas {
+.weekly-delta-chart-frame {
+  position: relative;
+  height: 200px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.trend-panel canvas,
+.weekly-change-panel canvas {
   display: block;
   width: 100% !important;
   height: 100% !important;
@@ -726,13 +736,17 @@ button:disabled {
 
   .dashboard-supporting {
     grid-column: 1 / -1;
-    grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.35fr) minmax(240px, 0.75fr);
+    grid-template-columns: minmax(260px, 0.85fr) minmax(260px, 0.85fr) minmax(0, 1.35fr) minmax(220px, 0.65fr);
     align-items: start;
   }
 
   .trend-chart-frame {
     height: 320px;
     margin-top: 10px;
+  }
+
+  .weekly-delta-chart-frame {
+    height: 240px;
   }
 
   .metric-strip {

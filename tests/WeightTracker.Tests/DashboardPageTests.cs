@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -173,6 +174,39 @@ public sealed class DashboardPageTests
         Assert.Contains("Entry count", html);
         Assert.Contains(">4</strong>", html);
         Assert.DoesNotContain("full-history-list", html);
+    }
+
+    [Fact]
+    public async Task Dashboard_RendersWeeklyChangePanelWithSerializedDeltaData()
+    {
+        await using var app = new DashboardTestApp();
+        await app.UpdateSettingsAsync("kg", goalWeightKg: 80m);
+        await app.AddEntryAsync(new DateOnly(2026, 6, 10), 86.0m);
+        await app.AddEntryAsync(new DateOnly(2026, 6, 17), 84.0m);
+        await app.AddEntryAsync(Today, 83.0m);
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, html);
+        Assert.Contains("aria-label=\"Weekly change\"", html);
+        Assert.Contains("id=\"weeklyDeltaChart\"", html);
+        Assert.Contains("const weeklyDeltas =", html);
+
+        var weeklyDeltasMatch = Regex.Match(html, "const weeklyDeltas = (?<json>.*?);", RegexOptions.Singleline);
+        Assert.True(weeklyDeltasMatch.Success, html);
+
+        using var weeklyDeltasJson = JsonDocument.Parse(weeklyDeltasMatch.Groups["json"].Value);
+        var weeklyDelta = Assert.Single(
+            weeklyDeltasJson.RootElement.EnumerateArray(),
+            point => point.GetProperty("weekStart").GetString() == "2026-06-15");
+
+        Assert.Equal("2026-06-21", weeklyDelta.GetProperty("weekEnd").GetString());
+        Assert.Equal(-2.0m, weeklyDelta.GetProperty("deltaKg").GetDecimal());
+        Assert.Equal((int)DirectionalStatus.TowardGoal, weeklyDelta.GetProperty("directionalStatus").GetInt32());
+        Assert.Contains("Progress insights", html);
+        Assert.Contains("Recent history", html);
     }
 
     [Fact]
