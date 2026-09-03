@@ -5,7 +5,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/carlocgc/WeightTracker/actions/workflows/pr-build.yml"><img alt="PR Build" src="https://github.com/carlocgc/WeightTracker/actions/workflows/pr-build.yml/badge.svg?branch=development"></a>
+  <a href="https://github.com/carlocgc/WeightTracker/actions/workflows/pr-build.yml"><img alt="PR Build" src="https://github.com/carlocgc/WeightTracker/actions/workflows/pr-build.yml/badge.svg"></a>
+  <a href="https://github.com/carlocgc/WeightTracker/actions/workflows/dev-image.yml"><img alt="Development Image" src="https://github.com/carlocgc/WeightTracker/actions/workflows/dev-image.yml/badge.svg"></a>
   <a href="https://github.com/carlocgc/WeightTracker/actions/workflows/release-docker.yml"><img alt="Release Docker Image" src="https://github.com/carlocgc/WeightTracker/actions/workflows/release-docker.yml/badge.svg"></a>
   <a href="https://github.com/carlocgc/WeightTracker/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/carlocgc/WeightTracker?sort=semver&label=latest"></a>
   <a href="https://hub.docker.com/r/carlocgc/weighttracker"><img alt="Docker Hub" src="https://img.shields.io/docker/pulls/carlocgc/weighttracker?logo=docker&label=Docker%20Hub"></a>
@@ -64,6 +65,16 @@ To run the published Docker Hub image directly:
 docker run --name weighttracker --rm -p 18080:8080 -v weighttracker-data:/data carlocgc/weighttracker:latest
 ```
 
+## Development image
+
+Every merge into `development` builds, tests, and publishes the result as `docker.io/carlocgc/weighttracker:dev`. The `dev` tag is overwritten on each merge and tracks the tip of `development`, so it carries no version history and is not a release. Use `latest` or a `vX.Y.Z` tag for anything you care about keeping.
+
+```powershell
+docker run --name weighttracker-dev --rm -p 18080:8080 -v weighttracker-dev-data:/data carlocgc/weighttracker:dev
+```
+
+It uses the same `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` secrets as the release workflow.
+
 ## Releases
 
 Release tags must use `vX.Y.Z` format and point to a commit contained in `master`.
@@ -79,5 +90,5 @@ DOCKERHUB_TOKEN
 
 ## Branches
 
-- `master`: stable branch.
-- `development`: integration branch.
+- `master`: stable branch. Release tags are cut from here and publish `vX.Y.Z` and `latest`.
+- `development`: integration branch. Merges here publish `dev`.
